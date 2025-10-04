@@ -12,13 +12,15 @@ internal sealed class WindowsDisplayInfo
     public Version? MccsVersion { get; init; }
     public IReadOnlyCollection<Capability> Capabilities { get; init; } = [];
     public string Description { get; init; } = string.Empty;
+    public bool SupportsVCP { get; init; }
 
     public static WindowsDisplayInfo Create(WindowsDisplayHandle handle)
     {
         var raw = GetCapabilities(handle).Trim();
         if (string.IsNullOrWhiteSpace(raw))
         {
-            return new WindowsDisplayInfo { Description = handle.Description };
+            // No capabilities string -> no DDC/CI
+            return new WindowsDisplayInfo { Description = handle.Description, SupportsVCP = false };
         }
         if (raw.StartsWith('(') && raw.EndsWith(')'))
         {
@@ -39,7 +41,8 @@ internal sealed class WindowsDisplayInfo
             Type = type,
             Model = model,
             MccsVersion = mccsVer != null && Version.TryParse(mccsVer, out var ver) ? ver : null,
-            Capabilities = rawVcp != null ? GetFeatures(rawVcp) : []
+            Capabilities = rawVcp != null ? GetFeatures(rawVcp) : [],
+            SupportsVCP = true
         };
     }
 
@@ -48,7 +51,8 @@ internal sealed class WindowsDisplayInfo
         if (!WinAPI.GetCapabilitiesStringLength(handle.Handle, out var len) || len == 0)
             return string.Empty;
         var sb = new StringBuilder((int)len);
-        WinAPI.CapabilitiesRequestAndCapabilitiesReply(handle.Handle, sb, len);
+        if (!WinAPI.CapabilitiesRequestAndCapabilitiesReply(handle.Handle, sb, len))
+            return string.Empty;
         return sb.ToString();
     }
 

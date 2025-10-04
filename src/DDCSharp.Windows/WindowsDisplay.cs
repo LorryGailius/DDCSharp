@@ -22,6 +22,7 @@ internal sealed class WindowsDisplay : IDisplay
         Model = info.Model;
         MCCSVersion = info.MccsVersion;
         _capabilities = info.Capabilities;
+        SupportsVCP = info.SupportsVCP;
     }
 
     public string Description { get; private set; } = string.Empty;
@@ -29,6 +30,7 @@ internal sealed class WindowsDisplay : IDisplay
     public string? Model { get; private set; }
     public Version? MCCSVersion { get; private set; }
     public IReadOnlyCollection<Capability> Capabilities => _capabilities;
+    public bool SupportsVCP { get; private set; }
 
     public bool TryGetVcpFeature(VCPFeature code, out VCPFeatureType type, out uint currentValue, out uint maximumValue)
     {

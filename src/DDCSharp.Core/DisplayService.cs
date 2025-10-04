@@ -42,10 +42,10 @@ public static class DisplayService
     }
 
     /// <summary>
-    /// Returns the combined list of displays from all registered providers.
+    /// Returns all discovered displays (including those without VCP / DDC/CI support).
     /// Provider exceptions are swallowed to avoid blocking enumeration.
     /// </summary>
-    public static IReadOnlyList<IDisplay> GetDisplays()
+    public static IReadOnlyList<IDisplay> GetAllDisplays()
     {
         List<IDisplayProvider> snapshot;
         lock (_lock)
@@ -67,5 +67,16 @@ public static class DisplayService
             }
         }
         return all;
+    }
+
+    /// <summary>
+    /// Returns only VCP-capable (controllable) displays. Displays that do not expose
+    /// DDC/CI are filtered out (e.g. NoOpDisplay instances).
+    /// </summary>
+    public static IReadOnlyList<IDisplay> GetDisplays()
+    {
+        return GetAllDisplays()
+            .Where(x => x.SupportsVCP)
+            .ToList();
     }
 }

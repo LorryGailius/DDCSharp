@@ -14,7 +14,15 @@ public sealed class WindowsDisplayProvider : IDisplayProvider
             {
                 var handle = new WindowsDisplayHandle(p);
                 var info = WindowsDisplayInfo.Create(handle);
-                yield return new WindowsDisplay(handle, info);
+                if (info.SupportsVCP)
+                {
+                    yield return new WindowsDisplay(handle, info);
+                }
+                else
+                {
+                    yield return new NoOpDisplay(info.Description, info.Type, info.Model, info.MccsVersion);
+                    handle.Dispose(); // release handle not needed further
+                }
             }
         }
     }

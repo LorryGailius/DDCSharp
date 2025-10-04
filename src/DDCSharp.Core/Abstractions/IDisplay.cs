@@ -3,7 +3,7 @@ using DDCSharp.Core.Capabilities;
 namespace DDCSharp.Core.Abstractions;
 
 /// <summary>
-/// Abstraction for a physical display supporting DDC/CI VCP operations.
+/// Abstraction for a physical display. Some instances may not expose DDC/CI (VCP) control.
 /// </summary>
 public interface IDisplay : IDisposable
 {
@@ -19,6 +19,8 @@ public interface IDisplay : IDisposable
     Version? MCCSVersion { get; }
     /// <summary>Parsed capability list (VCP feature codes and supported values).</summary>
     IReadOnlyCollection<Capability> Capabilities { get; }
+    /// <summary>Indicates whether the underlying monitor exposes DDC/CI (MCCS) support.</summary>
+    bool SupportsVCP { get; }
 
     // Capabilities management
 
