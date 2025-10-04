@@ -9,7 +9,7 @@ public interface IDisplay : IDisposable
 {
     // Properties
 
-    /// <summary>Human readable monitor description provided by the system.</summary>
+    /// <summary>Human-readable monitor description provided by the system.</summary>
     string Description { get; }
     /// <summary>Reported monitor type section (if any) from capabilities string.</summary>
     string? Type { get; }

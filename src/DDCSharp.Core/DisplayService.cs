@@ -15,7 +15,7 @@ public interface IDisplayProvider
 /// </summary>
 public static class DisplayService
 {
-    private static readonly List<IDisplayProvider> _providers = new();
+    private static readonly List<IDisplayProvider> _providers = [];
     private static readonly object _lock = new();
 
     /// <summary>

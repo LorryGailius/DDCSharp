@@ -5,6 +5,8 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DDCSharp.Core", "src\DDCSharp.Core\DDCSharp.Core.csproj", "{8B242818-0460-4D6A-A9CB-C9D89CB78E0C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DDCSharp.Windows", "src\DDCSharp.Windows\DDCSharp.Windows.csproj", "{817D1832-8228-4FAB-BFFC-E457BA225AA7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,8 +17,15 @@ Global
 		{8B242818-0460-4D6A-A9CB-C9D89CB78E0C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8B242818-0460-4D6A-A9CB-C9D89CB78E0C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8B242818-0460-4D6A-A9CB-C9D89CB78E0C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{817D1832-8228-4FAB-BFFC-E457BA225AA7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{817D1832-8228-4FAB-BFFC-E457BA225AA7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{817D1832-8228-4FAB-BFFC-E457BA225AA7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{817D1832-8228-4FAB-BFFC-E457BA225AA7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {4C3B6747-5473-4D99-B370-940F009F9D93}
 	EndGlobalSection
 EndGlobal
