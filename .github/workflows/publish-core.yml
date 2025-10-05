@@ -1,0 +1,83 @@
+name: Publish DDCSharp.Core
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g. 0.1.0)'
+        required: true
+      prerelease:
+        description: 'Mark as prerelease'
+        required: false
+        default: 'false'
+  push:
+    tags:
+      - 'core-v*'
+  paths:
+    - 'src/DDCSharp.Core/**'
+
+jobs:
+  publish-core:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Derive version
+        id: get_version
+        shell: pwsh
+        run: |
+          if ($env:GITHUB_EVENT_NAME -eq 'workflow_dispatch') {
+            $v = '${{ github.event.inputs.version }}'
+          } elseif ('${{ github.ref }}' -match 'refs/tags/core-v(?<ver>.*)') {
+            $v = $Matches['ver']
+          } else {
+            throw 'Tag must be core-vX.Y.Z or run manually.'
+          }
+          echo "version=$v" >> $env:GITHUB_OUTPUT
+          Write-Host "Publishing Core version $v"
+
+      - name: Set version in csproj (temporary)
+        shell: pwsh
+        run: |
+          $v='${{ steps.get_version.outputs.version }}'
+          (Get-Content src/DDCSharp.Core/DDCSharp.Core.csproj) -replace '<Version>.*</Version>', "<Version>$v</Version>" | Set-Content src/DDCSharp.Core/DDCSharp.Core.csproj
+
+      - name: Restore
+        run: dotnet restore src/DDCSharp.Core/DDCSharp.Core.csproj
+
+      - name: Build
+        run: dotnet build src/DDCSharp.Core/DDCSharp.Core.csproj -c Release --no-restore
+
+      - name: Pack
+        run: dotnet pack src/DDCSharp.Core/DDCSharp.Core.csproj -c Release -o artifacts /p:PackageVersion=${{ steps.get_version.outputs.version }} --no-build
+
+      - name: Publish package
+        run: dotnet nuget push 'artifacts/*.nupkg' -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json --skip-duplicate
+
+      - name: Publish symbols
+        run: dotnet nuget push 'artifacts/*.snupkg' -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json --skip-duplicate
+
+      - name: Fire repository dispatch (core_published)
+        if: success()
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          event-type: core_published
+          client-payload: '{"version": "${{ steps.get_version.outputs.version }}"}'
+
+      - name: Create Release (if tag)
+        if: startsWith(github.ref, 'refs/tags/core-v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*.nupkg
+          tag_name: core-v${{ steps.get_version.outputs.version }}
+          name: Core v${{ steps.get_version.outputs.version }}
+          prerelease: ${{ github.event.inputs.prerelease == 'true' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

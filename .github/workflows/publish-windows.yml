@@ -1,0 +1,88 @@
+name: Publish DDCSharp.Windows
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Windows package version (e.g. 0.1.0)'
+        required: true
+      coreVersion:
+        description: 'Core dependency version (e.g. 0.1.0)'
+        required: true
+      prerelease:
+        description: 'Mark as prerelease'
+        required: false
+        default: 'false'
+  repository_dispatch:
+    types: [core_published]
+  push:
+    tags:
+      - 'windows-v*'
+  paths:
+    - 'src/DDCSharp.Windows/**'
+
+jobs:
+  publish-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Derive versions
+        id: versions
+        shell: pwsh
+        run: |
+          if ($env:GITHUB_EVENT_NAME -eq 'repository_dispatch') {
+            $payload = '${{ toJson(github.event.client_payload) }}' | ConvertFrom-Json
+            $coreVersion = $payload.version
+            # Windows version defaults to same as Core unless a tag provided
+            if ('${{ github.ref }}' -match 'refs/tags/windows-v(?<v>.*)') { $winVersion = $Matches['v'] } else { $winVersion = $coreVersion }
+          } elseif ('${{ github.ref }}' -match 'refs/tags/windows-v(?<v2>.*)') {
+            $winVersion = $Matches['v2']
+            $coreVersion = '${{ github.event.inputs.coreVersion }}'
+          } else {
+            $winVersion='${{ github.event.inputs.version }}'
+            $coreVersion='${{ github.event.inputs.coreVersion }}'
+          }
+          echo "winVersion=$winVersion" >> $env:GITHUB_OUTPUT
+          echo "coreVersion=$coreVersion" >> $env:GITHUB_OUTPUT
+          Write-Host "Windows version: $winVersion  Core dependency: $coreVersion"
+
+      - name: Update Windows csproj versions
+        shell: pwsh
+        run: |
+          $win='${{ steps.versions.outputs.winVersion }}'
+          $core='${{ steps.versions.outputs.coreVersion }}'
+          (Get-Content src/DDCSharp.Windows/DDCSharp.Windows.csproj) -replace '<Version>.*</Version>', "<Version>$win</Version>" | Set-Content src/DDCSharp.Windows/DDCSharp.Windows.csproj
+          (Get-Content src/DDCSharp.Windows/DDCSharp.Windows.csproj) -replace '<PackageReference Include="DDCSharp.Core" Version="[^"]+"', "<PackageReference Include=\"DDCSharp.Core\" Version=\"$core\"" | Set-Content src/DDCSharp.Windows/DDCSharp.Windows.csproj
+
+      - name: Restore
+        run: dotnet restore src/DDCSharp.Windows/DDCSharp.Windows.csproj
+
+      - name: Build
+        run: dotnet build src/DDCSharp.Windows/DDCSharp.Windows.csproj -c Release --no-restore
+
+      - name: Pack
+        run: dotnet pack src/DDCSharp.Windows/DDCSharp.Windows.csproj -c Release -o artifacts /p:PackageVersion=${{ steps.versions.outputs.winVersion }} --no-build
+
+      - name: Publish package
+        run: dotnet nuget push 'artifacts/*.nupkg' -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json --skip-duplicate
+
+      - name: Publish symbols
+        run: dotnet nuget push 'artifacts/*.snupkg' -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json --skip-duplicate
+
+      - name: Create Release (if tag)
+        if: startsWith(github.ref, 'refs/tags/windows-v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*.nupkg
+          tag_name: windows-v${{ steps.versions.outputs.winVersion }}
+          name: Windows v${{ steps.versions.outputs.winVersion }}
+          prerelease: ${{ github.event.inputs.prerelease == 'true' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -4,10 +4,37 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <!-- NuGet package metadata -->
+    <PackageId>DDCSharp.Windows</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>Lorry Gailius</Authors>
+    <Company></Company>
+    <Product>DDCSharp</Product>
+    <Description>Windows implementation for DDCSharp providing monitor enumeration and VCP command transport.</Description>
+    <PackageTags>DDC;DDC/CI;Monitor;Display;VCP;Windows</PackageTags>
+    <RepositoryUrl>https://github.com/LorryGailius/DDCSharp</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://github.com/LorryGailius/DDCSharp</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+    <Deterministic>true</Deterministic>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DDCSharp.Core\DDCSharp.Core.csproj" />
+    <!-- Depend on published Core package -->
+    <PackageReference Include="DDCSharp.Core" Version="0.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Include README in the package (root README) -->
+    <None Include="..\..\README.md" Pack="true" PackagePath="" />
   </ItemGroup>
 
 </Project>

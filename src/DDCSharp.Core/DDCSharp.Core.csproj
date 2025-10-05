@@ -4,6 +4,33 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <!-- NuGet package metadata -->
+    <PackageId>DDCSharp.Core</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>Lorry Gailius</Authors>
+    <Company></Company>
+    <Product>DDCSharp</Product>
+    <Description>Core abstractions and capabilities for controlling monitors via DDC/CI in .NET.</Description>
+    <PackageTags>DDC;DDC/CI;Monitor;Display;VCP;Brightness</PackageTags>
+    <RepositoryUrl>https://github.com/LorryGailius/DDCSharp</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://github.com/LorryGailius/DDCSharp</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+    <Deterministic>true</Deterministic>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Include README in the package (root README) -->
+    <None Include="..\..\README.md" Pack="true" PackagePath="" />
+  </ItemGroup>
+
 
 </Project>

@@ -8,6 +8,27 @@ Lightweight C# (.NET 8) library for enumerating physical monitors and performing
 - `DDCSharp.Core` – Provider & transport abstractions plus capability / VCP feature models.
 - `DDCSharp.Windows` – Windows implementation using `dxva2.dll` (Win32 APIs) to enumerate and control monitors.
 
+## NuGet Packages
+
+| Package | NuGet | Description |
+|---------|-------|-------------|
+| DDCSharp.Core | [![NuGet](https://img.shields.io/nuget/v/DDCSharp.Core.svg)](https://www.nuget.org/packages/DDCSharp.Core) | Core abstractions + capability models |
+| DDCSharp.Windows | [![NuGet](https://img.shields.io/nuget/v/DDCSharp.Windows.svg)](https://www.nuget.org/packages/DDCSharp.Windows) | Windows provider implementation |
+
+Install via Package Manager:
+
+```
+PM> Install-Package DDCSharp.Core
+PM> Install-Package DDCSharp.Windows
+```
+
+Or with `dotnet` CLI:
+
+```
+dotnet add package DDCSharp.Core
+dotnet add package DDCSharp.Windows
+```
+
 ## Key Concepts
 
 - `IDisplay` – Abstraction of a physical monitor (read / write VCP features, refresh capabilities).
