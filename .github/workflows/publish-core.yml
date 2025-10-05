@@ -13,8 +13,6 @@ on:
   push:
     tags:
       - 'core-v*'
-  paths:
-    - 'src/DDCSharp.Core/**'
 
 jobs:
   publish-core:

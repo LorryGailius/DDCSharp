@@ -18,8 +18,6 @@ on:
   push:
     tags:
       - 'windows-v*'
-  paths:
-    - 'src/DDCSharp.Windows/**'
 
 jobs:
   publish-windows:
