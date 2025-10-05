@@ -54,12 +54,35 @@ jobs:
 
       - name: Pack
         run: dotnet pack src/DDCSharp.Core/DDCSharp.Core.csproj -c Release -o artifacts /p:PackageVersion=${{ steps.get_version.outputs.version }} --no-build
+      - name: List artifacts (debug)
+        shell: pwsh
+        run: |
+          if (Test-Path artifacts) {
+            Write-Host 'Artifacts directory contents:'
+            Get-ChildItem artifacts | Format-Table Name,Length,LastWriteTime
+          } else {
+            Write-Host 'Artifacts directory missing.'
+          }
+
+      - name: Validate & capture package paths
+        id: capture
+        shell: pwsh
+        run: |
+          if (-not (Test-Path artifacts)) { throw 'Artifacts folder not created (pack failed?)' }
+          $nupkg = Get-ChildItem artifacts -Filter *.nupkg | Select -First 1
+          if (-not $nupkg) { throw 'No .nupkg produced. Check pack step output.' }
+          $snupkg = Get-ChildItem artifacts -Filter *.snupkg | Select -First 1
+          echo "nupkg=$($nupkg.FullName)" >> $env:GITHUB_OUTPUT
+          if ($snupkg) { echo "snupkg=$($snupkg.FullName)" >> $env:GITHUB_OUTPUT }
+          Write-Host "Using package: $($nupkg.Name)"
+          if ($snupkg) { Write-Host "Using symbols: $($snupkg.Name)" } else { Write-Host 'No symbol package found.' }
 
       - name: Publish package
-        run: dotnet nuget push 'artifacts/*.nupkg' -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json --skip-duplicate
+        run: dotnet nuget push "${{ steps.capture.outputs.nupkg }}" -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json --skip-duplicate
 
-      - name: Publish symbols
-        run: dotnet nuget push 'artifacts/*.snupkg' -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json --skip-duplicate
+      - name: Publish symbols (if present)
+        if: steps.capture.outputs.snupkg
+        run: dotnet nuget push "${{ steps.capture.outputs.snupkg }}" -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json --skip-duplicate
 
       - name: Fire repository dispatch (core_published)
         if: success()
