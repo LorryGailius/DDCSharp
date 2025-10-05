@@ -7,7 +7,6 @@ internal sealed class WindowsDisplay : IDisplay
 {
     private readonly WindowsDisplayHandle _handle;
     private readonly object _sync = new();
-    private IReadOnlyCollection<Capability> _capabilities = [];
 
     public WindowsDisplay(WindowsDisplayHandle handle, WindowsDisplayInfo info)
     {
@@ -21,7 +20,7 @@ internal sealed class WindowsDisplay : IDisplay
         Type = info.Type;
         Model = info.Model;
         MCCSVersion = info.MccsVersion;
-        _capabilities = info.Capabilities;
+        Capabilities = info.Capabilities;
         SupportsVCP = info.SupportsVCP;
     }
 
@@ -29,14 +28,14 @@ internal sealed class WindowsDisplay : IDisplay
     public string? Type { get; private set; }
     public string? Model { get; private set; }
     public Version? MCCSVersion { get; private set; }
-    public IReadOnlyCollection<Capability> Capabilities => _capabilities;
+    public IReadOnlyCollection<Capability> Capabilities { get; private set; } = [];
     public bool SupportsVCP { get; private set; }
 
-    public bool TryGetVcpFeature(VCPFeature code, out VCPFeatureType type, out uint currentValue, out uint maximumValue)
+    public bool TryGetVcpFeature(byte code, out VCPFeatureType type, out uint currentValue, out uint maximumValue)
     {
         lock (_sync)
         {
-            if (!WinAPI.GetVCPFeatureAndVCPFeatureReply(_handle.Handle, (byte)code, out var nativeType, out var current, out var max))
+            if (!WinAPI.GetVCPFeatureAndVCPFeatureReply(_handle.Handle, code, out var nativeType, out var current, out var max))
             {
                 type = default;
                 currentValue = 0;
@@ -50,19 +49,21 @@ internal sealed class WindowsDisplay : IDisplay
         }
     }
 
-    public bool TrySetVcpFeature(VCPFeature code, uint value)
+    public bool TrySetVcpFeature(byte code, uint value)
     {
         lock (_sync)
         {
-            return WinAPI.SetVCPFeature(_handle.Handle, (byte)code, value);
+            return WinAPI.SetVCPFeature(_handle.Handle, code, value);
         }
     }
 
     public IReadOnlyCollection<InputSource> GetSupportedInputSources()
     {
-        var displayCapability = _capabilities.FirstOrDefault(c => c.Feature == VCPFeature.InputSource);
+        var displayCapability = Capabilities.FirstOrDefault(c => c.Feature == VCPFeature.InputSource);
         if (displayCapability == null)
+        {
             return [];
+        }
 
         return displayCapability.SupportedValues
             .Select(v => Enum.IsDefined(typeof(InputSource), v) ? (InputSource)v : InputSource.Unknown)
@@ -75,18 +76,18 @@ internal sealed class WindowsDisplay : IDisplay
         {
             return false;
         }
-        return TrySetVcpFeature(VCPFeature.InputSource, (byte)input);
+        return TrySetVcpFeature((byte)VCPFeature.InputSource, (byte)input);
     }
 
     public bool TrySetBrightness(uint brightness)
     {
-        var capability = _capabilities.FirstOrDefault(c => c.Feature == VCPFeature.Brightness);
+        var capability = Capabilities.FirstOrDefault(c => c.Feature == VCPFeature.Brightness);
         if (capability == null)
         {
             return false;
         }
 
-        return TrySetVcpFeature(VCPFeature.Brightness, brightness);
+        return TrySetVcpFeature((byte)VCPFeature.Brightness, brightness);
     }
 
     public void RefreshCapabilities()

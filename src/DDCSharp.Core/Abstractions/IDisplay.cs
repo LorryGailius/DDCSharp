@@ -29,10 +29,24 @@ public interface IDisplay : IDisposable
 
     // Generic VCP feature access
 
-    /// <summary>Attempt to read a VCP feature.</summary>
-    bool TryGetVcpFeature(VCPFeature code, out VCPFeatureType type, out uint currentValue, out uint maximumValue);
-    /// <summary>Attempt to set a VCP feature value.</summary>
-    bool TrySetVcpFeature(VCPFeature code, uint value);
+    /// <summary>
+    /// Attempt to read a VCP feature using a raw byte code (allows unknown / manufacturer specific codes).
+    /// </summary>
+    bool TryGetVcpFeature(byte code, out VCPFeatureType type, out uint currentValue, out uint maximumValue);
+    /// <summary>
+    /// Attempt to read a VCP feature using a known enum value. Convenience wrapper over the raw byte overload.
+    /// </summary>
+    bool TryGetVcpFeature(VCPFeature code, out VCPFeatureType type, out uint currentValue, out uint maximumValue)
+        => TryGetVcpFeature((byte)code, out type, out currentValue, out maximumValue);
+
+    /// <summary>
+    /// Attempt to set a VCP feature value using a raw byte code (allows unknown / manufacturer specific codes).
+    /// </summary>
+    bool TrySetVcpFeature(byte code, uint value);
+    /// <summary>
+    /// Attempt to set a VCP feature value using a known enum value. Convenience wrapper over the raw byte overload.
+    /// </summary>
+    bool TrySetVcpFeature(VCPFeature code, uint value) => TrySetVcpFeature((byte)code, value);
 
 
     // Specific common features
