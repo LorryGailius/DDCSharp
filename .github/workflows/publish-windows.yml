@@ -1,0 +1,74 @@
+name: Publish DDCSharp.Windows to NuGet
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Package version to publish (e.g. 0.1.1 or 0.2.0-beta.1)"
+        required: true
+      core_version:
+        description: "DDCSharp.Core dependency version to reference (defaults to newest)"
+        required: false
+
+env:
+  PROJECT_PATH: src/DDCSharp.Windows/DDCSharp.Windows.csproj
+  ARTIFACT_DIR: artifacts
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Adjust Core dependency (optional)
+        if: ${{ github.event.inputs.core_version != '' }}
+        run: |
+          echo "Overriding DDCSharp.Core version to ${{ github.event.inputs.core_version }} in project file"
+          sed -i 's#<PackageReference Include="DDCSharp.Core" Version="[^"]*" />#<PackageReference Include="DDCSharp.Core" Version="${{ github.event.inputs.core_version }}" />#' ${{ env.PROJECT_PATH }}
+          grep 'DDCSharp.Core' ${{ env.PROJECT_PATH }}
+
+      - name: Pack
+        run: |
+          VER=${{ github.event.inputs.version }}
+          echo "Packing DDCSharp.Windows version $VER"
+          dotnet pack ${{ env.PROJECT_PATH }} -c Release -p:PackageVersion=$VER -o ${{ env.ARTIFACT_DIR }}
+          ls -al ${{ env.ARTIFACT_DIR }}
+
+      - name: Push package (nupkg)
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          if [ -z "$NUGET_API_KEY" ]; then echo "Missing NUGET_API_KEY secret"; exit 1; fi
+          PKG=${{ env.ARTIFACT_DIR }}/DDCSharp.Windows.${{ github.event.inputs.version }}.nupkg
+            if [ ! -f "$PKG" ]; then echo "Package not found: $PKG"; exit 1; fi
+            echo "Pushing $PKG"
+            dotnet nuget push "$PKG" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
+
+      - name: Push symbols (snupkg)
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          if [ -z "$NUGET_API_KEY" ]; then echo "Missing NUGET_API_KEY secret"; exit 1; fi
+          SYMBOL_PKG="${{ env.ARTIFACT_DIR }}/DDCSharp.Windows.${{ github.event.inputs.version }}.snupkg"
+          if [ -f "$SYMBOL_PKG" ]; then
+            echo "Pushing symbols $SYMBOL_PKG"
+            dotnet nuget push "$SYMBOL_PKG" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
+          else
+            echo "No symbol package found (expected $SYMBOL_PKG)."
+          fi
+
+      - name: Summary
+        run: |
+          echo "## Publish Windows Package Summary" >> $GITHUB_STEP_SUMMARY
+          echo "Version: ${{ github.event.inputs.version }}" >> $GITHUB_STEP_SUMMARY
+          if [ '${{ github.event.inputs.core_version }}' != '' ]; then echo "Core dependency version override: ${{ github.event.inputs.core_version }}" >> $GITHUB_STEP_SUMMARY; fi
+          echo "Symbols pushed: Yes (if .snupkg present)" >> $GITHUB_STEP_SUMMARY

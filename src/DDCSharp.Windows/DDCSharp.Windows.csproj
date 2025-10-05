@@ -29,7 +29,7 @@
 
   <ItemGroup>
     <!-- Depend on published Core package -->
-    <PackageReference Include="DDCSharp.Core" Version="0.1.0" />
+    <PackageReference Include="DDCSharp.Core" Version="*" />
   </ItemGroup>
 
   <ItemGroup>

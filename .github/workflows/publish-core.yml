@@ -4,12 +4,8 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Package version to publish (e.g. 0.1.1 or 0.2.0-beta.1)"
+        description: "Package version to publish (e.g. 0.1.1)"
         required: true
-      skip_symbols:
-        description: "Skip pushing symbols (.snupkg)? (true/false)"
-        required: false
-        default: "false"
 
 env:
   PROJECT_PATH: src/DDCSharp.Core/DDCSharp.Core.csproj
@@ -47,7 +43,6 @@ jobs:
           done
 
       - name: Push symbols (snupkg)
-        if: ${{ github.event.inputs.skip_symbols != 'true' }}
         env:
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
         run: |
@@ -65,4 +60,4 @@ jobs:
         run: |
           echo "## Publish Summary" >> $GITHUB_STEP_SUMMARY
           echo "Version: ${{ github.event.inputs.version }}" >> $GITHUB_STEP_SUMMARY
-          echo "Symbols pushed: $([[ '${{ github.event.inputs.skip_symbols }}' == 'true' ]] && echo 'No' || echo 'Yes (if present)')" >> $GITHUB_STEP_SUMMARY
+          echo "Symbols pushed: Yes (if .snupkg present)" >> $GITHUB_STEP_SUMMARY
