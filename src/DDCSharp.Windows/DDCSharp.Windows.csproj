@@ -7,7 +7,7 @@
     <!-- NuGet package metadata -->
     <PackageId>DDCSharp.Windows</PackageId>
     <Version>0.1.0</Version>
-    <Authors>Lorry Gailius</Authors>
+    <Authors>Laurynas Gailius</Authors>
     <Company></Company>
     <Product>DDCSharp</Product>
     <Description>Windows implementation for DDCSharp providing monitor enumeration and VCP command transport.</Description>
