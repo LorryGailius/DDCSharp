@@ -1,0 +1,68 @@
+name: Publish DDCSharp.Core to NuGet
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Package version to publish (e.g. 0.1.1 or 0.2.0-beta.1)"
+        required: true
+      skip_symbols:
+        description: "Skip pushing symbols (.snupkg)? (true/false)"
+        required: false
+        default: "false"
+
+env:
+  PROJECT_PATH: src/DDCSharp.Core/DDCSharp.Core.csproj
+  ARTIFACT_DIR: artifacts
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Pack
+        run: |
+          echo "Packing version ${{ github.event.inputs.version }}"
+          dotnet pack ${{ env.PROJECT_PATH }} -c Release -p:PackageVersion=${{ github.event.inputs.version }} -o ${{ env.ARTIFACT_DIR }}
+          ls -al ${{ env.ARTIFACT_DIR }}
+
+      - name: Push package (nupkg)
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          if [ -z "$NUGET_API_KEY" ]; then echo "Missing NUGET_API_KEY secret"; exit 1; fi
+          for pkg in $(ls ${{ env.ARTIFACT_DIR }}/DDCSharp.Core.${{ github.event.inputs.version }}.nupkg); do
+            echo "Pushing $pkg"
+            dotnet nuget push "$pkg" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
+          done
+
+      - name: Push symbols (snupkg)
+        if: ${{ github.event.inputs.skip_symbols != 'true' }}
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          set -e
+          if [ -z "$NUGET_API_KEY" ]; then echo "Missing NUGET_API_KEY secret"; exit 1; fi
+          SYMBOL_PKG="${{ env.ARTIFACT_DIR }}/DDCSharp.Core.${{ github.event.inputs.version }}.snupkg"
+          if [ -f "$SYMBOL_PKG" ]; then
+            echo "Pushing symbols $SYMBOL_PKG"
+            dotnet nuget push "$SYMBOL_PKG" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
+          else
+            echo "No symbol package found (expected $SYMBOL_PKG)."
+          fi
+
+      - name: Summary
+        run: |
+          echo "## Publish Summary" >> $GITHUB_STEP_SUMMARY
+          echo "Version: ${{ github.event.inputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "Symbols pushed: $([[ '${{ github.event.inputs.skip_symbols }}' == 'true' ]] && echo 'No' || echo 'Yes (if present)')" >> $GITHUB_STEP_SUMMARY
