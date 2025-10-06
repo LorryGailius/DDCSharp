@@ -6,19 +6,29 @@ namespace DDCSharp.Core.Abstractions;
 /// Generic no-op display representing a monitor without VCP / DDC/CI support.
 /// All control operations return false and capabilities are empty.
 /// </summary>
-public sealed class NoOpDisplay(
-    string description,
-    string? type = null,
-    string? model = null,
-    Version? mccsVersion = null)
-    : IDisplay
+public sealed class NoOpDisplay : IDisplay
 {
-    public string Description { get; } = description;
-    public string? Type { get; } = type;
-    public string? Model { get; } = model;
-    public Version? MCCSVersion { get; } = mccsVersion;
+    public string Id { get; }
+    public string Description { get; }
+    public string? Type { get; }
+    public string? Model { get; }
+    public Version? MCCSVersion { get; }
     public IReadOnlyCollection<Capability> Capabilities => [];
     public bool SupportsVCP => false;
+
+    public NoOpDisplay(
+        string description,
+        string? type = null,
+        string? model = null,
+        Version? mccsVersion = null,
+        string? id = null)
+    {
+        Description = description;
+        Type = type;
+        Model = model;
+        MCCSVersion = mccsVersion;
+        Id = id ?? description;
+    }
 
     public void RefreshCapabilities() { /* no-op */ }
 

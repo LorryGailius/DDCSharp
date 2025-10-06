@@ -1,15 +1,22 @@
+using DDCSharp.Core.Abstractions;
+
 namespace DDCSharp.Windows;
 
-internal sealed class WindowsDisplayHandle : IDisposable
+public sealed class WindowsDisplayHandle : IDisplayHandle
 {
+    public string Id { get; }
     public nint Handle { get; }
     public string Description { get; }
     private bool _disposed;
 
-    internal WindowsDisplayHandle(WinAPI.PHYSICAL_MONITOR physical)
+    internal WindowsDisplayHandle(nint hMonitor, WinAPI.PHYSICAL_MONITOR physical)
     {
         Handle = physical.hPhysicalMonitor;
         Description = physical.szPhysicalMonitorDescription.Trim();
+        var devName = WinAPI.GetMonitorDeviceName(hMonitor);
+        Id = string.IsNullOrWhiteSpace(devName)
+            ? $"{Description}"
+            : $"{devName}|{Description}";
     }
 
     public void Dispose()

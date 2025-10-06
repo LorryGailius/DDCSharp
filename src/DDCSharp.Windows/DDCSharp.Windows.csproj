@@ -27,14 +27,18 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
 
-  <ItemGroup>
-    <!-- Depend on published Core package -->
+  <!--<ItemGroup>
+    --><!-- Depend on published Core package --><!--
     <PackageReference Include="DDCSharp.Core" Version="*" />
-  </ItemGroup>
+  </ItemGroup>-->
 
   <ItemGroup>
     <!-- Include README in the package (root README) -->
     <None Include="..\..\README.md" Pack="true" PackagePath="" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DDCSharp.Core\DDCSharp.Core.csproj" />
   </ItemGroup>
 
 </Project>

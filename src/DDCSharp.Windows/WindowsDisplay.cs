@@ -7,12 +7,13 @@ namespace DDCSharp.Windows;
 
 internal sealed class WindowsDisplay : IDisplay
 {
-    private readonly WindowsDisplayHandle _handle;
+    private WindowsDisplayHandle _handle;
     private readonly object _sync = new();
 
     public WindowsDisplay(WindowsDisplayHandle handle, WindowsDisplayInfo info)
     {
         _handle = handle;
+        Id = handle.Id;
         ApplyInfo(info);
     }
 
@@ -26,6 +27,7 @@ internal sealed class WindowsDisplay : IDisplay
         SupportsVCP = info.SupportsVCP;
     }
 
+    public string Id { get; private set; }
     public string Description { get; private set; } = string.Empty;
     public string? Type { get; private set; }
     public string? Model { get; private set; }
@@ -86,6 +88,8 @@ internal sealed class WindowsDisplay : IDisplay
 
         TrySetVCPFeature((byte)VCPFeature.InputSource, (byte)targetInput);
 
+        ReAttachHandle();
+
         var pollInterval = TimeSpan.FromTicks(1);
 
         if (timeout == null || timeout <= TimeSpan.Zero)
@@ -126,6 +130,8 @@ internal sealed class WindowsDisplay : IDisplay
         }
 
         TrySetVCPFeature((byte)VCPFeature.InputSource, (byte)targetInput);
+
+        ReAttachHandle();
 
         var appliedTimeout = timeout ?? TimeSpan.FromSeconds(5);
         var pollInterval = TimeSpan.FromTicks(1);
@@ -188,4 +194,16 @@ internal sealed class WindowsDisplay : IDisplay
     }
 
     public void Dispose() => _handle.Dispose();
+
+    private void ReAttachHandle()
+    {
+        var newHandle = WindowsDisplayProvider.GetHandleById(Id);
+        if (newHandle == null || newHandle.Handle == _handle.Handle)
+        {
+            return;
+        }
+
+        _handle.Dispose();
+        _handle = newHandle;
+    }
 }

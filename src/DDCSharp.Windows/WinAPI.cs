@@ -21,6 +21,21 @@ internal static class WinAPI
     [StructLayout(LayoutKind.Sequential)]
     internal struct RECT { public int left, top, right, bottom; }
 
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+    private struct MONITORINFOEX
+    {
+        public int cbSize;
+        public RECT rcMonitor;
+        public RECT rcWork;
+        public uint dwFlags;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+        public string szDevice;
+    }
+
+    [DllImport(User32, CharSet = CharSet.Auto)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetMonitorInfo(nint hMonitor, ref MONITORINFOEX lpmi);
+
     [DllImport(User32)]
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static extern bool EnumDisplayMonitors(nint hdc, nint lprcClip, MonitorEnumProc lpfnEnum, nint dwData);
@@ -77,5 +92,15 @@ internal static class WinAPI
         var list = new List<nint>();
         EnumDisplayMonitors(0, 0, (nint hMonitor, nint hdc, ref RECT r, nint data) => { list.Add(hMonitor); return true; }, 0);
         return list;
+    }
+
+    internal static string GetMonitorDeviceName(nint hMonitor)
+    {
+        var info = new MONITORINFOEX { cbSize = Marshal.SizeOf<MONITORINFOEX>() };
+        if (GetMonitorInfo(hMonitor, ref info))
+        {
+            return info.szDevice?.TrimEnd('\0') ?? string.Empty;
+        }
+        return string.Empty;
     }
 }

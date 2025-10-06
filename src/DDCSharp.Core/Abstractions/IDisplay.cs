@@ -9,6 +9,8 @@ public interface IDisplay : IDisposable
 {
     // Properties
 
+    /// <summary>Stable unique identifier for the display within the current session (e.g. logical device name + description).</summary>
+    string Id { get; }
     /// <summary>Human-readable display description provided by the system.</summary>
     string Description { get; }
     /// <summary>Reported display type section (if any) from capabilities string.</summary>
