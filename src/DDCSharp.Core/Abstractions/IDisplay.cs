@@ -77,7 +77,7 @@ public interface IDisplay : IDisposable
     /// </summary>
     /// <param name="targetInput">Desired input source.</param>
     /// <param name="timeout">How long to wait for the source to apply before failing (null for implementation default).</param>
-    /// <returns>True if the input source change was requested successfully; otherwise false.</returns>
+    /// <returns>True if the input source change was successful. Depending on the display the return may not properly reflect reality.</returns>
     bool TrySetInputSource(InputSource targetInput, TimeSpan? timeout = null);
 
     /// <summary>
@@ -86,7 +86,7 @@ public interface IDisplay : IDisposable
     /// <param name="targetInput">Desired input source.</param>
     /// <param name="timeout">How long to wait for the source to apply before failing (null for implementation default).</param>
     /// <param name="cancellationToken">Token used to cancel the pending operation.</param>
-    /// <returns>True if the input source change was requested successfully; otherwise false.</returns>
+    /// <returns>True if the input source change was successful. Depending on the display the return may not properly reflect reality.</returns>
     Task<bool> TrySetInputSourceAsync(InputSource targetInput, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
 
     /// <summary>Read current input source.</summary>

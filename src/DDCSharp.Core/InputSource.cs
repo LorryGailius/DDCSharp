@@ -1,4 +1,4 @@
-﻿namespace DDCSharp.Core.Capabilities;
+﻿namespace DDCSharp.Core;
 
 /// <summary>
 /// Known monitor input source codes (subset of MCCS values).

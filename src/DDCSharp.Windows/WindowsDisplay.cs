@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using DDCSharp.Core;
 using DDCSharp.Core.Abstractions;
 using DDCSharp.Core.Capabilities;
 
@@ -85,7 +86,7 @@ internal sealed class WindowsDisplay : IDisplay
 
         TrySetVCPFeature((byte)VCPFeature.InputSource, (byte)targetInput);
 
-        var pollInterval = TimeSpan.FromMilliseconds(100);
+        var pollInterval = TimeSpan.FromTicks(1);
 
         if (timeout == null || timeout <= TimeSpan.Zero)
         {
@@ -126,8 +127,8 @@ internal sealed class WindowsDisplay : IDisplay
 
         TrySetVCPFeature((byte)VCPFeature.InputSource, (byte)targetInput);
 
-        var appliedTimeout = timeout ?? TimeSpan.FromMinutes(1);
-        var pollInterval = TimeSpan.FromMilliseconds(100);
+        var appliedTimeout = timeout ?? TimeSpan.FromSeconds(5);
+        var pollInterval = TimeSpan.FromTicks(1);
 
         if (appliedTimeout <= TimeSpan.Zero)
         {
