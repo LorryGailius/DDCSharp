@@ -32,6 +32,26 @@ internal static class WinAPI
         public string szDevice;
     }
 
+    // DISPLAY_DEVICE structure + EnumDisplayDevices to obtain a stable monitor device instance id
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+    private struct DISPLAY_DEVICE
+    {
+        public int cb;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+        public string DeviceName;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
+        public string DeviceString;
+        public int StateFlags;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
+        public string DeviceID;           // Includes DISPLAY\\<MFG><ProductCode>\\<InstancePath>
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
+        public string DeviceKey;
+    }
+
+    [DllImport(User32, CharSet = CharSet.Auto)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool EnumDisplayDevices(string? lpDevice, uint iDevNum, ref DISPLAY_DEVICE lpDisplayDevice, uint dwFlags);
+
     [DllImport(User32, CharSet = CharSet.Auto)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GetMonitorInfo(nint hMonitor, ref MONITORINFOEX lpmi);
@@ -102,5 +122,41 @@ internal static class WinAPI
             return info.szDevice?.TrimEnd('\0') ?? string.Empty;
         }
         return string.Empty;
+    }
+
+    internal static string? GetMonitorDeviceInstanceId(nint hMonitor)
+    {
+        var logicalName = GetMonitorDeviceName(hMonitor);
+        if (string.IsNullOrWhiteSpace(logicalName)) return null;
+
+        for (uint adapterIndex = 0; ; adapterIndex++)
+        {
+            var adapter = new DISPLAY_DEVICE { cb = Marshal.SizeOf<DISPLAY_DEVICE>() };
+            if (!EnumDisplayDevices(null, adapterIndex, ref adapter, 0))
+            {
+                break;
+            }
+
+            if (string.IsNullOrWhiteSpace(adapter.DeviceName)) continue;
+
+            for (uint monitorIndex = 0; ; monitorIndex++)
+            {
+                var monitor = new DISPLAY_DEVICE { cb = Marshal.SizeOf<DISPLAY_DEVICE>() };
+                if (!EnumDisplayDevices(adapter.DeviceName, monitorIndex, ref monitor, 0))
+                {
+                    break;
+                }
+
+                if (!string.IsNullOrWhiteSpace(monitor.DeviceName) && monitor.DeviceName.StartsWith(logicalName, StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!string.IsNullOrWhiteSpace(monitor.DeviceID))
+                    {
+                        return monitor.DeviceID.Trim();
+                    }
+                }
+            }
+        }
+
+        return null;
     }
 }

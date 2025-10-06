@@ -14,9 +14,18 @@ public sealed class WindowsDisplayHandle : IDisplayHandle
         Handle = physical.hPhysicalMonitor;
         Description = physical.szPhysicalMonitorDescription.Trim();
         var devName = WinAPI.GetMonitorDeviceName(hMonitor);
-        Id = string.IsNullOrWhiteSpace(devName)
-            ? $"{Description}"
-            : $"{devName}|{Description}";
+        var instanceId = WinAPI.GetMonitorDeviceInstanceId(hMonitor);
+
+        if (!string.IsNullOrWhiteSpace(instanceId))
+        {
+            Id = instanceId;
+        }
+        else
+        {
+            Id = string.IsNullOrWhiteSpace(devName)
+                ? $"{Description}"
+                : $"{devName}|{Description}";
+        }
     }
 
     public void Dispose()
