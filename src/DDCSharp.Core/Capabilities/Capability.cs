@@ -6,7 +6,7 @@
 public record Capability(
     byte Value,
     VCPFeature Feature,
-    IReadOnlyList<uint> SupportedValues)
+    IReadOnlyList<byte> SupportedValues)
 {
     /// <summary>Hexadecimal representation (two characters) of the feature code.</summary>
     public string Hex => Value.ToString("X2");

@@ -26,7 +26,7 @@ internal sealed class WindowsDisplayInfo
         {
             raw = raw[1..^1].Trim();
         }
-        var regex = new Regex(@"([a-z]{3,})\(([\s\S]*?)\)(?=(?:[a-z]{3,}\()|$)");
+        var regex = new Regex(@"([a-z_]{3,})\(([\s\S]*?)\)(?=(?:[a-z_]{3,}\()|$)");
         var sections = regex.Matches(raw)
             .Where(m => m.Groups.Count == 3)
             .Select(m => (Key: m.Groups[1].Value, m.Groups[2].Value))
@@ -67,15 +67,23 @@ internal sealed class WindowsDisplayInfo
                 var feature = Enum.IsDefined(typeof(VCPFeature), (VCPFeature)code)
                     ? (VCPFeature)code
                     : VCPFeature.Unknown;
-                IReadOnlyList<uint> supportedValues = [];
+                IReadOnlyList<byte> supportedValues = [];
                 if (m.Groups.Count > 2 && m.Groups[2].Success)
                 {
                     var valuesText = m.Groups[2].Value;
                     if (!string.IsNullOrWhiteSpace(valuesText))
                     {
+                        // Some manufacturers use VCP values larger than one byte
                         supportedValues = valuesText
                             .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                            .Select(v => uint.Parse(v, NumberStyles.HexNumber, CultureInfo.InvariantCulture))
+                            .Where(token => token.Length <= 2)
+                            .Select(token => 
+                                byte.TryParse(token, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var b)
+                                ? (byte?)b
+                                : null)
+                            .Where(b => b.HasValue)
+                            .Select(b => b!.Value)
+                            .Distinct()
                             .ToArray();
                     }
                 }

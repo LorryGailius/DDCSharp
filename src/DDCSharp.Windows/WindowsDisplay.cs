@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using DDCSharp.Core.Abstractions;
 using DDCSharp.Core.Capabilities;
 
@@ -31,11 +32,16 @@ internal sealed class WindowsDisplay : IDisplay
     public IReadOnlyCollection<Capability> Capabilities { get; private set; } = [];
     public bool SupportsVCP { get; private set; }
 
-    public bool TryGetVcpFeature(byte code, out VCPFeatureType type, out uint currentValue, out uint maximumValue)
+    public bool TryGetVCPFeature(byte code, out VCPFeatureType type, out uint currentValue, out uint maximumValue)
     {
         lock (_sync)
         {
-            if (!WinAPI.GetVCPFeatureAndVCPFeatureReply(_handle.Handle, code, out var nativeType, out var current, out var max))
+            if (!WinAPI.GetVCPFeatureAndVCPFeatureReply(
+                    _handle.Handle,
+                    code,
+                    out var nativeType, 
+                    out var current,
+                    out var max))
             {
                 type = default;
                 currentValue = 0;
@@ -49,7 +55,7 @@ internal sealed class WindowsDisplay : IDisplay
         }
     }
 
-    public bool TrySetVcpFeature(byte code, uint value)
+    public bool TrySetVCPFeature(byte code, uint value)
     {
         lock (_sync)
         {
@@ -70,13 +76,94 @@ internal sealed class WindowsDisplay : IDisplay
             .ToList();
     }
 
-    public bool TrySetInputSource(InputSource input)
+    public bool TrySetInputSource(InputSource targetInput, TimeSpan? timeout = null)
     {
-        if (!GetSupportedInputSources().Any(x => x == input))
+        if (!GetSupportedInputSources().Contains(targetInput))
         {
             return false;
         }
-        return TrySetVcpFeature((byte)VCPFeature.InputSource, (byte)input);
+
+        TrySetVCPFeature((byte)VCPFeature.InputSource, (byte)targetInput);
+
+        var pollInterval = TimeSpan.FromMilliseconds(100);
+
+        if (timeout == null || timeout <= TimeSpan.Zero)
+        {
+            return GetInputSource() == targetInput;
+        }
+
+        var sw = Stopwatch.StartNew();
+        while (sw.Elapsed < timeout.Value)
+        {
+            if (GetInputSource() == targetInput)
+            {
+                return true;
+            }
+
+            var remaining = timeout.Value - sw.Elapsed;
+            var delay = remaining < pollInterval
+                ? remaining
+                : pollInterval;
+
+            if (delay > TimeSpan.Zero)
+            {
+                Thread.Sleep(delay);
+            }
+        }
+
+        return GetInputSource() == targetInput;
+    }
+
+    public async Task<bool> TrySetInputSourceAsync(
+        InputSource targetInput,
+        TimeSpan? timeout = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (!GetSupportedInputSources().Contains(targetInput))
+        {
+            return false;
+        }
+
+        TrySetVCPFeature((byte)VCPFeature.InputSource, (byte)targetInput);
+
+        var appliedTimeout = timeout ?? TimeSpan.FromMinutes(1);
+        var pollInterval = TimeSpan.FromMilliseconds(100);
+
+        if (appliedTimeout <= TimeSpan.Zero)
+        {
+            return GetInputSource() == targetInput;
+        }
+
+        var sw = Stopwatch.StartNew();
+        while (sw.Elapsed <= appliedTimeout)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (GetInputSource() == targetInput)
+            {
+                return true;
+            }
+
+            var remaining = appliedTimeout - sw.Elapsed;
+            var delay = remaining < pollInterval
+                ? remaining
+                : pollInterval;
+
+            if (delay > TimeSpan.Zero)
+            {
+                await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        return GetInputSource() == targetInput;
+    }
+
+    public InputSource GetInputSource()
+    {
+        if (!TryGetVCPFeature((byte)VCPFeature.InputSource, out _, out var currentValue, out _))
+        {
+            return InputSource.Unknown;
+        }
+        return Enum.IsDefined(typeof(InputSource), (byte)currentValue) ? (InputSource)(byte)currentValue : InputSource.Unknown;
     }
 
     public bool TrySetBrightness(uint brightness)
@@ -87,7 +174,7 @@ internal sealed class WindowsDisplay : IDisplay
             return false;
         }
 
-        return TrySetVcpFeature((byte)VCPFeature.Brightness, brightness);
+        return TrySetVCPFeature((byte)VCPFeature.Brightness, brightness);
     }
 
     public void RefreshCapabilities()
