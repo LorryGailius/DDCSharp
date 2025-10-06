@@ -9,8 +9,6 @@ public interface IDisplay : IDisposable
 {
     // Properties
 
-    /// <summary>Stable unique identifier for the display within the current session (e.g. logical device name + description).</summary>
-    string Id { get; }
     /// <summary>Human-readable display description provided by the system.</summary>
     string Description { get; }
     /// <summary>Reported display type section (if any) from capabilities string.</summary>
@@ -21,7 +19,7 @@ public interface IDisplay : IDisposable
     Version? MCCSVersion { get; }
     /// <summary>Parsed capability list (VCP feature codes and supported values).</summary>
     IReadOnlyCollection<Capability> Capabilities { get; }
-    /// <summary>Indicates whether the underlying display exposes DDC/CI (MCCS) support. If false, calling any DDC</summary>
+    /// <summary>Indicates whether the underlying display exposes DDC/CI (MCCS) support. If false, calling any DDC operation will be unsuccessful.</summary>
     bool SupportsVCP { get; }
 
     // Capabilities management
@@ -75,21 +73,14 @@ public interface IDisplay : IDisposable
     IReadOnlyCollection<InputSource> GetSupportedInputSources();
 
     /// <summary>
-    /// Attempt to change current input source.
-    /// </summary>
-    /// <param name="targetInput">Desired input source.</param>
-    /// <param name="timeout">How long to wait for the source to apply before failing (null for implementation default).</param>
-    /// <returns>True if the input source change was successful. Depending on the display the return may not properly reflect reality.</returns>
-    bool TrySetInputSource(InputSource targetInput, TimeSpan? timeout = null);
-
-    /// <summary>
     /// Attempt to change current input source asynchronously.
     /// </summary>
-    /// <param name="targetInput">Desired input source.</param>
-    /// <param name="timeout">How long to wait for the source to apply before failing (null for implementation default).</param>
-    /// <param name="cancellationToken">Token used to cancel the pending operation.</param>
-    /// <returns>True if the input source change was successful. Depending on the display the return may not properly reflect reality.</returns>
-    Task<bool> TrySetInputSourceAsync(InputSource targetInput, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
+    /// <remarks>
+    /// This method does not return success indication, since MCCS does not provide a reliable way to confirm the change
+    /// and failure is expected
+    /// </remarks>
+    /// <param name="targetInput"></param>
+    void SetInputSource(InputSource targetInput);
 
     /// <summary>Read current input source.</summary>
     InputSource GetInputSource();

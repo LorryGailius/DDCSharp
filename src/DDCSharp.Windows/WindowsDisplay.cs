@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using DDCSharp.Core;
 using DDCSharp.Core.Abstractions;
 using DDCSharp.Core.Capabilities;
@@ -7,13 +6,12 @@ namespace DDCSharp.Windows;
 
 internal sealed class WindowsDisplay : IDisplay
 {
-    private WindowsDisplayHandle _handle;
+    private readonly WindowsDisplayHandle _handle;
     private readonly object _sync = new();
 
     public WindowsDisplay(WindowsDisplayHandle handle, WindowsDisplayInfo info)
     {
         _handle = handle;
-        Id = handle.Id;
         ApplyInfo(info);
     }
 
@@ -22,12 +20,11 @@ internal sealed class WindowsDisplay : IDisplay
         Description = info.Description;
         Type = info.Type;
         Model = info.Model;
-        MCCSVersion = info.MccsVersion;
+        MCCSVersion = info.MCCSVersion;
         Capabilities = info.Capabilities;
         SupportsVCP = info.SupportsVCP;
     }
 
-    public string Id { get; private set; }
     public string Description { get; private set; } = string.Empty;
     public string? Type { get; private set; }
     public string? Model { get; private set; }
@@ -42,7 +39,7 @@ internal sealed class WindowsDisplay : IDisplay
             if (!WinAPI.GetVCPFeatureAndVCPFeatureReply(
                     _handle.Handle,
                     code,
-                    out var nativeType, 
+                    out var nativeType,
                     out var current,
                     out var max))
             {
@@ -79,89 +76,14 @@ internal sealed class WindowsDisplay : IDisplay
             .ToList();
     }
 
-    public bool TrySetInputSource(InputSource targetInput, TimeSpan? timeout = null)
+    public void SetInputSource(InputSource targetInput)
     {
         if (!GetSupportedInputSources().Contains(targetInput))
         {
-            return false;
+            return;
         }
 
         TrySetVCPFeature((byte)VCPFeature.InputSource, (byte)targetInput);
-
-        ReAttachHandle();
-
-        var pollInterval = TimeSpan.FromTicks(1);
-
-        if (timeout == null || timeout <= TimeSpan.Zero)
-        {
-            return GetInputSource() == targetInput;
-        }
-
-        var sw = Stopwatch.StartNew();
-        while (sw.Elapsed < timeout.Value)
-        {
-            if (GetInputSource() == targetInput)
-            {
-                return true;
-            }
-
-            var remaining = timeout.Value - sw.Elapsed;
-            var delay = remaining < pollInterval
-                ? remaining
-                : pollInterval;
-
-            if (delay > TimeSpan.Zero)
-            {
-                Thread.Sleep(delay);
-            }
-        }
-
-        return GetInputSource() == targetInput;
-    }
-
-    public async Task<bool> TrySetInputSourceAsync(
-        InputSource targetInput,
-        TimeSpan? timeout = null,
-        CancellationToken cancellationToken = default)
-    {
-        if (!GetSupportedInputSources().Contains(targetInput))
-        {
-            return false;
-        }
-
-        TrySetVCPFeature((byte)VCPFeature.InputSource, (byte)targetInput);
-
-        ReAttachHandle();
-
-        var appliedTimeout = timeout ?? TimeSpan.FromSeconds(5);
-        var pollInterval = TimeSpan.FromTicks(1);
-
-        if (appliedTimeout <= TimeSpan.Zero)
-        {
-            return GetInputSource() == targetInput;
-        }
-
-        var sw = Stopwatch.StartNew();
-        while (sw.Elapsed <= appliedTimeout)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (GetInputSource() == targetInput)
-            {
-                return true;
-            }
-
-            var remaining = appliedTimeout - sw.Elapsed;
-            var delay = remaining < pollInterval
-                ? remaining
-                : pollInterval;
-
-            if (delay > TimeSpan.Zero)
-            {
-                await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
-            }
-        }
-
-        return GetInputSource() == targetInput;
     }
 
     public InputSource GetInputSource()
@@ -194,19 +116,4 @@ internal sealed class WindowsDisplay : IDisplay
     }
 
     public void Dispose() => _handle.Dispose();
-
-    private void ReAttachHandle()
-    {
-        lock (_sync)
-        {
-            var newHandle = WindowsDisplayProvider.GetHandleById(Id);
-            if (newHandle == null || newHandle.Handle == _handle.Handle)
-            {
-                return;
-            }
-
-            _handle.Dispose();
-            _handle = newHandle;
-        }
-    }
 }

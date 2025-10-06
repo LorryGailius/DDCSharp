@@ -8,7 +8,6 @@ namespace DDCSharp.Core.Abstractions;
 /// </summary>
 public sealed class NoOpDisplay : IDisplay
 {
-    public string Id { get; }
     public string Description { get; }
     public string? Type { get; }
     public string? Model { get; }
@@ -20,14 +19,12 @@ public sealed class NoOpDisplay : IDisplay
         string description,
         string? type = null,
         string? model = null,
-        Version? mccsVersion = null,
-        string? id = null)
+        Version? mccsVersion = null)
     {
         Description = description;
         Type = type;
         Model = model;
         MCCSVersion = mccsVersion;
-        Id = id ?? description;
     }
 
     public void RefreshCapabilities() { /* no-op */ }
@@ -41,12 +38,7 @@ public sealed class NoOpDisplay : IDisplay
 
     public IReadOnlyCollection<InputSource> GetSupportedInputSources() => [];
 
-    public bool TrySetInputSource(InputSource _, TimeSpan? timeout = null) => false;
-
-    public Task<bool> TrySetInputSourceAsync(
-        InputSource targetInput,
-        TimeSpan? timeout = null,
-        CancellationToken cancellationToken = default) => Task.FromResult(false);
+    public void SetInputSource(InputSource targetInput) { /* no-op */ }
 
     public InputSource GetInputSource() => InputSource.Unknown;
 

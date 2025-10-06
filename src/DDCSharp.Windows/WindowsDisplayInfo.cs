@@ -9,7 +9,7 @@ internal sealed class WindowsDisplayInfo
 {
     public string? Type { get; init; }
     public string? Model { get; init; }
-    public Version? MccsVersion { get; init; }
+    public Version? MCCSVersion { get; init; }
     public IReadOnlyCollection<Capability> Capabilities { get; init; } = [];
     public string Description { get; init; } = string.Empty;
     public bool SupportsVCP { get; init; }
@@ -40,7 +40,7 @@ internal sealed class WindowsDisplayInfo
             Description = handle.Description,
             Type = type,
             Model = model,
-            MccsVersion = mccsVer != null && Version.TryParse(mccsVer, out var ver) ? ver : null,
+            MCCSVersion = mccsVer != null && Version.TryParse(mccsVer, out var ver) ? ver : null,
             Capabilities = rawVcp != null ? GetFeatures(rawVcp) : [],
             SupportsVCP = true
         };

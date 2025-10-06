@@ -21,41 +21,6 @@ internal static class WinAPI
     [StructLayout(LayoutKind.Sequential)]
     internal struct RECT { public int left, top, right, bottom; }
 
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
-    private struct MONITORINFOEX
-    {
-        public int cbSize;
-        public RECT rcMonitor;
-        public RECT rcWork;
-        public uint dwFlags;
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
-        public string szDevice;
-    }
-
-    // DISPLAY_DEVICE structure + EnumDisplayDevices to obtain a stable monitor device instance id
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
-    private struct DISPLAY_DEVICE
-    {
-        public int cb;
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
-        public string DeviceName;
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
-        public string DeviceString;
-        public int StateFlags;
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
-        public string DeviceID;           // Includes DISPLAY\\<MFG><ProductCode>\\<InstancePath>
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
-        public string DeviceKey;
-    }
-
-    [DllImport(User32, CharSet = CharSet.Auto)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool EnumDisplayDevices(string? lpDevice, uint iDevNum, ref DISPLAY_DEVICE lpDisplayDevice, uint dwFlags);
-
-    [DllImport(User32, CharSet = CharSet.Auto)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool GetMonitorInfo(nint hMonitor, ref MONITORINFOEX lpmi);
-
     [DllImport(User32)]
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static extern bool EnumDisplayMonitors(nint hdc, nint lprcClip, MonitorEnumProc lpfnEnum, nint dwData);
@@ -112,51 +77,5 @@ internal static class WinAPI
         var list = new List<nint>();
         EnumDisplayMonitors(0, 0, (nint hMonitor, nint hdc, ref RECT r, nint data) => { list.Add(hMonitor); return true; }, 0);
         return list;
-    }
-
-    internal static string GetMonitorDeviceName(nint hMonitor)
-    {
-        var info = new MONITORINFOEX { cbSize = Marshal.SizeOf<MONITORINFOEX>() };
-        if (GetMonitorInfo(hMonitor, ref info))
-        {
-            return info.szDevice?.TrimEnd('\0') ?? string.Empty;
-        }
-        return string.Empty;
-    }
-
-    internal static string? GetMonitorDeviceInstanceId(nint hMonitor)
-    {
-        var logicalName = GetMonitorDeviceName(hMonitor);
-        if (string.IsNullOrWhiteSpace(logicalName)) return null;
-
-        for (uint adapterIndex = 0; ; adapterIndex++)
-        {
-            var adapter = new DISPLAY_DEVICE { cb = Marshal.SizeOf<DISPLAY_DEVICE>() };
-            if (!EnumDisplayDevices(null, adapterIndex, ref adapter, 0))
-            {
-                break;
-            }
-
-            if (string.IsNullOrWhiteSpace(adapter.DeviceName)) continue;
-
-            for (uint monitorIndex = 0; ; monitorIndex++)
-            {
-                var monitor = new DISPLAY_DEVICE { cb = Marshal.SizeOf<DISPLAY_DEVICE>() };
-                if (!EnumDisplayDevices(adapter.DeviceName, monitorIndex, ref monitor, 0))
-                {
-                    break;
-                }
-
-                if (!string.IsNullOrWhiteSpace(monitor.DeviceName) && monitor.DeviceName.StartsWith(logicalName, StringComparison.OrdinalIgnoreCase))
-                {
-                    if (!string.IsNullOrWhiteSpace(monitor.DeviceID))
-                    {
-                        return monitor.DeviceID.Trim();
-                    }
-                }
-            }
-        }
-
-        return null;
     }
 }
