@@ -197,13 +197,16 @@ internal sealed class WindowsDisplay : IDisplay
 
     private void ReAttachHandle()
     {
-        var newHandle = WindowsDisplayProvider.GetHandleById(Id);
-        if (newHandle == null || newHandle.Handle == _handle.Handle)
+        lock (_sync)
         {
-            return;
-        }
+            var newHandle = WindowsDisplayProvider.GetHandleById(Id);
+            if (newHandle == null || newHandle.Handle == _handle.Handle)
+            {
+                return;
+            }
 
-        _handle.Dispose();
-        _handle = newHandle;
+            _handle.Dispose();
+            _handle = newHandle;
+        }
     }
 }
