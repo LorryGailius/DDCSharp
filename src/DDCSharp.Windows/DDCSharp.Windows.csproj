@@ -28,7 +28,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="DDCSharp.Core" Version="*" />
+    <ProjectReference Include="..\DDCSharp.Core\DDCSharp.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>

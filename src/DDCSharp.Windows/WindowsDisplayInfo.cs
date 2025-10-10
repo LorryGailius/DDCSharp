@@ -13,6 +13,7 @@ internal sealed class WindowsDisplayInfo
     public IReadOnlyCollection<Capability> Capabilities { get; init; } = [];
     public string Description { get; init; } = string.Empty;
     public bool SupportsVCP { get; init; }
+    public string? DeviceId { get; init; }
 
     public static WindowsDisplayInfo Create(WindowsDisplayHandle handle)
     {
@@ -20,7 +21,7 @@ internal sealed class WindowsDisplayInfo
         if (string.IsNullOrWhiteSpace(raw))
         {
             // No capabilities string -> no DDC/CI
-            return new WindowsDisplayInfo { Description = handle.Description, SupportsVCP = false };
+            return new WindowsDisplayInfo { Description = handle.Description, SupportsVCP = false, DeviceId = handle.DeviceId };
         }
         if (raw.StartsWith('(') && raw.EndsWith(')'))
         {
@@ -42,7 +43,8 @@ internal sealed class WindowsDisplayInfo
             Model = model,
             MCCSVersion = mccsVer != null && Version.TryParse(mccsVer, out var ver) ? ver : null,
             Capabilities = rawVcp != null ? GetFeatures(rawVcp) : [],
-            SupportsVCP = true
+            SupportsVCP = true,
+            DeviceId = handle.DeviceId
         };
     }
 

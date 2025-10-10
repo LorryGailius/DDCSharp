@@ -9,6 +9,8 @@ public interface IDisplay : IDisposable
 {
     // Properties
 
+    /// <summary>Unique device interface identifier (e.g. \\?\DISPLAY#GUID#{INSTANCE_ID}). May be null if the platform cannot provide it.</summary>
+    string DeviceId { get; }
     /// <summary>Human-readable display description provided by the system.</summary>
     string Description { get; }
     /// <summary>Reported display type section (if any) from capabilities string.</summary>

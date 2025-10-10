@@ -23,8 +23,10 @@ internal sealed class WindowsDisplay : IDisplay
         MCCSVersion = info.MCCSVersion;
         Capabilities = info.Capabilities;
         SupportsVCP = info.SupportsVCP;
+        DeviceId = info.DeviceId;
     }
 
+    public string DeviceId { get; private set; }
     public string Description { get; private set; } = string.Empty;
     public string? Type { get; private set; }
     public string? Model { get; private set; }

@@ -8,6 +8,7 @@ namespace DDCSharp.Core.Abstractions;
 /// </summary>
 public sealed class NoOpDisplay : IDisplay
 {
+    public string DeviceId { get; }
     public string Description { get; }
     public string? Type { get; }
     public string? Model { get; }
@@ -16,6 +17,7 @@ public sealed class NoOpDisplay : IDisplay
     public bool SupportsVCP => false;
 
     public NoOpDisplay(
+        string deviceId,
         string description,
         string? type = null,
         string? model = null,
@@ -25,6 +27,7 @@ public sealed class NoOpDisplay : IDisplay
         Type = type;
         Model = model;
         MCCSVersion = mccsVersion;
+        DeviceId = deviceId;
     }
 
     public void RefreshCapabilities() { /* no-op */ }

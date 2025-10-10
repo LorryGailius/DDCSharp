@@ -7,12 +7,12 @@ public sealed class WindowsDisplayProvider : IDisplayProvider
 {
     public IEnumerable<IDisplay> GetDisplays()
     {
-        foreach (var h in WinAPI.EnumerateHMonitors())
+        foreach (var (hMonitor, deviceInterfaceId) in WinAPI.EnumerateMonitorHandlesWithInterfaceIds())
         {
-            var physicals = WinAPI.GetPhysicalMonitors(h);
+            var physicals = WinAPI.GetPhysicalMonitors(hMonitor);
             foreach (var p in physicals)
             {
-                var handle = new WindowsDisplayHandle(p);
+                var handle = new WindowsDisplayHandle(p, deviceInterfaceId);
                 var info = WindowsDisplayInfo.Create(handle);
                 if (info.SupportsVCP)
                 {
@@ -20,7 +20,7 @@ public sealed class WindowsDisplayProvider : IDisplayProvider
                 }
                 else
                 {
-                    yield return new NoOpDisplay(info.Description, info.Type, info.Model, info.MCCSVersion);
+                    yield return new NoOpDisplay(info.DeviceId, info.Description, info.Type, info.Model, info.MCCSVersion);
                     handle.Dispose(); // release handle not needed further
                 }
             }

@@ -79,4 +79,10 @@ public static class DisplayService
             .Where(x => x.SupportsVCP)
             .ToList();
     }
+
+    /// <summary>
+    /// Helper to find a display by its device interface id (if provided by platform).
+    /// </summary>
+    public static IDisplay? FindByDeviceId(string deviceId)
+        => GetAllDisplays().FirstOrDefault(d => string.Equals(d.DeviceId, deviceId, StringComparison.OrdinalIgnoreCase));
 }
