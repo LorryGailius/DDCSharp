@@ -8,8 +8,6 @@ internal static class WinAPI
     private const string Dxva2 = "dxva2.dll";
     private const string User32 = "user32.dll";
 
-    private const uint EDD_GET_DEVICE_INTERFACE_NAME = 0x00000001;
-
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
     internal struct PHYSICAL_MONITOR
     {
@@ -114,19 +112,7 @@ internal static class WinAPI
                 var info = new MONITORINFOEX { cbSize = Marshal.SizeOf<MONITORINFOEX>() };
                 if (GetMonitorInfo(hMonitor, ref info))
                 {
-                    // info.szDevice like "\\\\.\\DISPLAY1". Use EnumDisplayDevices on it to get interface path.
-                    var dd = new DISPLAY_DEVICE { cb = Marshal.SizeOf<DISPLAY_DEVICE>() };
-                    // Try first monitor on this adapter with interface flag.
-                    if (EnumDisplayDevices(info.szDevice, 0, ref dd, EDD_GET_DEVICE_INTERFACE_NAME))
-                    {
-                        if (!string.IsNullOrWhiteSpace(dd.DeviceID) && dd.DeviceID.StartsWith(@"\\?\DISPLAY", StringComparison.OrdinalIgnoreCase))
-                        {
-                            var token = dd.DeviceID.Split('#');
-                            deviceInterface = token.Length >= 3 
-                                ? $"{token[1]}_{token[2]}" 
-                                : dd.DeviceID.Replace('#', '\\');
-                        }
-                    }
+                    deviceInterface = info.szDevice;
                 }
             }
             catch
