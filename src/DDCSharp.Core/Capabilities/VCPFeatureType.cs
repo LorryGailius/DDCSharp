@@ -1,10 +1,12 @@
 namespace DDCSharp.Core.Capabilities;
 
 /// <summary>
-/// Native VCP feature type classification.
+/// VCP feature type classification. Values match the type byte of a DDC/CI Get VCP Feature reply.
 /// </summary>
-public enum VCPFeatureType : uint
+public enum VCPFeatureType : byte
 {
-    Momentary = 0x01,
-    SetParameter = 0x02
+    /// <summary>A setting that keeps its value (brightness, input source, ...).</summary>
+    SetParameter = 0x00,
+    /// <summary>A one-shot action (restore defaults, degauss, ...).</summary>
+    Momentary = 0x01
 }

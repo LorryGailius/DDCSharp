@@ -12,6 +12,7 @@ public record Capability(
     public string Hex => Value.ToString("X2");
     /// <summary>Indicates whether the capability exposes an explicit set of supported values.</summary>
     public bool HasSupportedValues => SupportedValues.Count > 0;
+    /// <inheritdoc />
     public override string ToString() =>
         HasSupportedValues
             ? $"{Hex} {Feature} [{string.Join(' ', SupportedValues.Select(v => v.ToString("X2")))}]"

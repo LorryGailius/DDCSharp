@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DDCSharp.Core", "src\DDCSha
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DDCSharp.Windows", "src\DDCSharp.Windows\DDCSharp.Windows.csproj", "{817D1832-8228-4FAB-BFFC-E457BA225AA7}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DDCSharp.Linux", "src\DDCSharp.Linux\DDCSharp.Linux.csproj", "{FC8980B1-9C90-4E0D-BF51-D6E42A4A6FB7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{817D1832-8228-4FAB-BFFC-E457BA225AA7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{817D1832-8228-4FAB-BFFC-E457BA225AA7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{817D1832-8228-4FAB-BFFC-E457BA225AA7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FC8980B1-9C90-4E0D-BF51-D6E42A4A6FB7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FC8980B1-9C90-4E0D-BF51-D6E42A4A6FB7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FC8980B1-9C90-4E0D-BF51-D6E42A4A6FB7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FC8980B1-9C90-4E0D-BF51-D6E42A4A6FB7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
