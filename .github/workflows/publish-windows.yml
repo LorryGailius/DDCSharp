@@ -4,11 +4,8 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Package version to publish (e.g. 0.1.1 or 0.2.0-beta.1)"
+        description: "Package version to publish (e.g. 0.1.1 or 0.2.0-beta.1). Depends on DDCSharp.Core of the same version, publish that first."
         required: true
-      core_version:
-        description: "DDCSharp.Core dependency version to reference (defaults to newest)"
-        required: false
 
 env:
   PROJECT_PATH: src/DDCSharp.Windows/DDCSharp.Windows.csproj
@@ -24,17 +21,10 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 8.0.x
+          dotnet-version: 10.0.x
 
       - name: Restore
         run: dotnet restore
-
-      - name: Adjust Core dependency (optional)
-        if: ${{ github.event.inputs.core_version != '' }}
-        run: |
-          echo "Overriding DDCSharp.Core version to ${{ github.event.inputs.core_version }} in project file"
-          sed -i 's#<PackageReference Include="DDCSharp.Core" Version="[^"]*" />#<PackageReference Include="DDCSharp.Core" Version="${{ github.event.inputs.core_version }}" />#' ${{ env.PROJECT_PATH }}
-          grep 'DDCSharp.Core' ${{ env.PROJECT_PATH }}
 
       - name: Pack
         run: |
@@ -70,5 +60,4 @@ jobs:
         run: |
           echo "## Publish Windows Package Summary" >> $GITHUB_STEP_SUMMARY
           echo "Version: ${{ github.event.inputs.version }}" >> $GITHUB_STEP_SUMMARY
-          if [ '${{ github.event.inputs.core_version }}' != '' ]; then echo "Core dependency version override: ${{ github.event.inputs.core_version }}" >> $GITHUB_STEP_SUMMARY; fi
           echo "Symbols pushed: Yes (if .snupkg present)" >> $GITHUB_STEP_SUMMARY
