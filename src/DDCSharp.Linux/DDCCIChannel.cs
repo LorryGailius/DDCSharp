@@ -6,22 +6,22 @@ using DDCSharp.Core.Capabilities;
 
 namespace DDCSharp.Linux;
 
-internal enum DdcStatus
+internal enum DDCStatus
 {
     Ok,
     Unsupported,
     Failed
 }
 
-internal readonly record struct VcpReading(VCPFeatureType Type, ushort Current, ushort Maximum);
+internal readonly record struct VCPReading(VCPFeatureType Type, ushort Current, ushort Maximum);
 
 /// <summary>
 /// DDC/CI message exchange with one display over an I2C bus.
 /// </summary>
-internal sealed class DdcCiChannel : IDisposable
+internal sealed class DDCCIChannel : IDisposable
 {
-    private const ushort DdcAddress = 0x37;
-    private const ushort EdidAddress = 0x50;
+    private const ushort DDCAddress = 0x37;
+    private const ushort EDIDAddress = 0x50;
 
     // Bytes on the wire: host requests are checksummed with the display's write address (0x6E),
     // replies with the virtual host address (0x50)
@@ -29,13 +29,13 @@ internal sealed class DdcCiChannel : IDisposable
     private const byte DisplayAddress = 0x6E;
     private const byte ReplyChecksumSeed = 0x50;
 
-    private const byte GetVcpRequest = 0x01;
-    private const byte GetVcpReply = 0x02;
-    private const byte SetVcpRequest = 0x03;
+    private const byte GetVCPRequest = 0x01;
+    private const byte GetVCPReply = 0x02;
+    private const byte SetVCPRequest = 0x03;
     private const byte CapabilitiesRequest = 0xF3;
     private const byte CapabilitiesReply = 0xE3;
 
-    private const int GetVcpReplyLength = 11;
+    private const int GetVCPReplyLength = 11;
     private const int CapabilitiesReplyLength = 38;
     private const int MaxCapabilitiesLength = 8192;
 
@@ -43,9 +43,9 @@ internal sealed class DdcCiChannel : IDisposable
 
     private readonly I2CBus _bus;
     private readonly BusState _state;
-    private readonly DdcTimings _timings;
+    private readonly DDCTimings _timings;
 
-    public DdcCiChannel(I2CBus bus, DdcTimings timings)
+    public DDCCIChannel(I2CBus bus, DDCTimings timings)
     {
         _bus = bus;
         _timings = timings;
@@ -54,14 +54,14 @@ internal sealed class DdcCiChannel : IDisposable
 
     public string BusPath => _bus.Path;
 
-    public DdcStatus TryGetVcp(byte code, out VcpReading reading, out string? error)
+    public DDCStatus TryGetVCP(byte code, out VCPReading reading, out string? error)
     {
-        Span<byte> request = [GetVcpRequest, code];
-        Span<byte> reply = stackalloc byte[GetVcpReplyLength];
+        Span<byte> request = [GetVCPRequest, code];
+        Span<byte> reply = stackalloc byte[GetVCPReplyLength];
         reading = default;
         if (IsWriteInBackground(out error))
         {
-            return DdcStatus.Failed;
+            return DDCStatus.Failed;
         }
 
         lock (_state)
@@ -72,7 +72,7 @@ internal sealed class DdcCiChannel : IDisposable
                 {
                     continue;
                 }
-                if (payload.Length != 8 || payload[0] != GetVcpReply || payload[2] != code)
+                if (payload.Length != 8 || payload[0] != GetVCPReply || payload[2] != code)
                 {
                     error = $"Unexpected Get VCP reply {Convert.ToHexString(payload)}";
                     Backoff();
@@ -81,7 +81,7 @@ internal sealed class DdcCiChannel : IDisposable
                 if (payload[1] == 0x01)
                 {
                     error = $"VCP code 0x{code:X2} is not supported by the display";
-                    return DdcStatus.Unsupported;
+                    return DDCStatus.Unsupported;
                 }
                 if (payload[1] != 0x00)
                 {
@@ -91,16 +91,16 @@ internal sealed class DdcCiChannel : IDisposable
                 }
 
                 var type = payload[3] == 0x01 ? VCPFeatureType.Momentary : VCPFeatureType.SetParameter;
-                reading = new VcpReading(type, (ushort)(payload[6] << 8 | payload[7]), (ushort)(payload[4] << 8 | payload[5]));
+                reading = new VCPReading(type, (ushort)(payload[6] << 8 | payload[7]), (ushort)(payload[4] << 8 | payload[5]));
                 error = null;
-                return DdcStatus.Ok;
+                return DDCStatus.Ok;
             }
         }
-        return DdcStatus.Failed;
+        return DDCStatus.Failed;
     }
 
-    public bool TrySetVcp(byte code, ushort value, [NotNullWhen(false)] out string? error) =>
-        !IsWriteInBackground(out error) && WriteVcp(code, value, _timings.MaxAttempts, out error);
+    public bool TrySetVCP(byte code, ushort value, [NotNullWhen(false)] out string? error) =>
+        !IsWriteInBackground(out error) && WriteVCP(code, value, _timings.MaxAttempts, out error);
 
     /// <summary>
     /// Sends a Set VCP Feature write once and waits at most <paramref name="wait"/> for the bus to acknowledge it.
@@ -112,14 +112,14 @@ internal sealed class DdcCiChannel : IDisposable
     /// move on to the bus the display reappears on instead of queueing behind it.
     /// </remarks>
     /// <returns>True if the write was acknowledged or is still pending after <paramref name="wait"/>.</returns>
-    public bool TrySetVcpInBackground(byte code, ushort value, TimeSpan wait, [NotNullWhen(false)] out string? error)
+    public bool TrySetVCPInBackground(byte code, ushort value, TimeSpan wait, [NotNullWhen(false)] out string? error)
     {
         if (IsWriteInBackground(out error))
         {
             return false;
         }
 
-        var write = new Task<(bool Written, string? Error)>(() => (WriteVcp(code, value, 1, out var writeError), writeError));
+        var write = new Task<(bool Written, string? Error)>(() => (WriteVCP(code, value, 1, out var writeError), writeError));
         _state.BackgroundWrite = write;
         write.Start();
         if (!write.Wait(wait))
@@ -137,7 +137,7 @@ internal sealed class DdcCiChannel : IDisposable
         return false;
     }
 
-    /// <summary>True while an input switch write started by <see cref="TrySetVcpInBackground"/> is still pending on the bus.</summary>
+    /// <summary>True while an input switch write started by <see cref="TrySetVCPInBackground"/> is still pending on the bus.</summary>
     public static bool IsWriteInBackground(string busPath) =>
         BusStates.TryGetValue(busPath, out var state) && state.BackgroundWrite is { IsCompleted: false };
 
@@ -149,9 +149,9 @@ internal sealed class DdcCiChannel : IDisposable
         return error != null;
     }
 
-    private bool WriteVcp(byte code, ushort value, int maxAttempts, [NotNullWhen(false)] out string? error)
+    private bool WriteVCP(byte code, ushort value, int maxAttempts, [NotNullWhen(false)] out string? error)
     {
-        Span<byte> request = [SetVcpRequest, code, (byte)(value >> 8), (byte)value];
+        Span<byte> request = [SetVCPRequest, code, (byte)(value >> 8), (byte)value];
         error = null;
 
         lock (_state)
@@ -159,7 +159,7 @@ internal sealed class DdcCiChannel : IDisposable
             for (var attempt = 1; attempt <= maxAttempts; attempt++)
             {
                 WaitUntilReady();
-                var written = _bus.TryWrite(DdcAddress, BuildRequest(request), out error);
+                var written = _bus.TryWrite(DDCAddress, BuildRequest(request), out error);
                 MarkBusy(written ? _timings.CommandInterval : _timings.RetryDelay);
                 if (written)
                 {
@@ -228,10 +228,10 @@ internal sealed class DdcCiChannel : IDisposable
     }
 
     /// <summary>Reads the 128-byte EDID base block with a combined write/read transaction.</summary>
-    public static bool TryReadEdid(I2CBus bus, Span<byte> buffer, [NotNullWhen(false)] out string? error)
+    public static bool TryReadEDID(I2CBus bus, Span<byte> buffer, [NotNullWhen(false)] out string? error)
     {
         ReadOnlySpan<byte> offset = [0x00];
-        return bus.TryWriteRead(EdidAddress, offset, buffer[..128], out error);
+        return bus.TryWriteRead(EDIDAddress, offset, buffer[..128], out error);
     }
 
     /// <summary>
@@ -247,14 +247,14 @@ internal sealed class DdcCiChannel : IDisposable
     {
         payload = default;
         WaitUntilReady();
-        if (!_bus.TryWrite(DdcAddress, BuildRequest(request), out error))
+        if (!_bus.TryWrite(DDCAddress, BuildRequest(request), out error))
         {
             Backoff();
             return false;
         }
 
         Thread.Sleep(replyDelay);
-        if (!_bus.TryRead(DdcAddress, reply, out error))
+        if (!_bus.TryRead(DDCAddress, reply, out error))
         {
             Backoff();
             return false;

@@ -4,13 +4,13 @@ using DDCSharp.Core.Capabilities;
 namespace DDCSharp.Linux;
 
 /// <summary>Display controlled with DDC/CI over a <c>/dev/i2c-N</c> bus.</summary>
-internal sealed class LinuxDisplay : DdcDisplay
+internal sealed class LinuxDisplay : DDCDisplay
 {
     private static readonly TimeSpan InputSwitchAcknowledgeWait = TimeSpan.FromMilliseconds(500);
 
-    private readonly DdcCiChannel _channel;
+    private readonly DDCCIChannel _channel;
 
-    public LinuxDisplay(DdcCiChannel channel, string id, string description, string connector)
+    public LinuxDisplay(DDCCIChannel channel, string id, string description, string connector)
         : base(id, description)
     {
         _channel = channel;
@@ -22,11 +22,11 @@ internal sealed class LinuxDisplay : DdcDisplay
 
     public override bool TryGetVCPFeature(byte code, out VCPFeatureType type, out uint currentValue, out uint maximumValue)
     {
-        var status = _channel.TryGetVcp(code, out var reading, out var error);
+        var status = _channel.TryGetVCP(code, out var reading, out var error);
         type = reading.Type;
         currentValue = reading.Current;
         maximumValue = reading.Maximum;
-        return status == DdcStatus.Ok ? Succeed() : Fail(error ?? "Unknown error");
+        return status == DDCStatus.Ok ? Succeed() : Fail(error ?? "Unknown error");
     }
 
     public override bool TrySetVCPFeature(byte code, uint value)
@@ -40,8 +40,8 @@ internal sealed class LinuxDisplay : DdcDisplay
         // the command, so the acknowledgement fails (over MST only after a 4 second kernel timeout) although the
         // switch happened. Input switches are therefore sent once and not waited for.
         var written = code == (byte)VCPFeature.InputSource
-            ? _channel.TrySetVcpInBackground(code, (ushort)value, InputSwitchAcknowledgeWait, out var error)
-            : _channel.TrySetVcp(code, (ushort)value, out error);
+            ? _channel.TrySetVCPInBackground(code, (ushort)value, InputSwitchAcknowledgeWait, out var error)
+            : _channel.TrySetVCP(code, (ushort)value, out error);
         return written ? Succeed() : Fail(error!);
     }
 

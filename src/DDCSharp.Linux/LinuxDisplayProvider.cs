@@ -10,18 +10,18 @@ namespace DDCSharp.Linux;
 /// </summary>
 public sealed class LinuxDisplayProvider : IDisplayProvider
 {
-    private readonly DdcTimings _timings;
+    private readonly DDCTimings _timings;
 
-    /// <param name="timings">DDC/CI delays and retries, <see cref="DdcTimings.Default"/> if null.</param>
-    public LinuxDisplayProvider(DdcTimings? timings = null)
+    /// <param name="timings">DDC/CI delays and retries, <see cref="DDCTimings.Default"/> if null.</param>
+    public LinuxDisplayProvider(DDCTimings? timings = null)
     {
-        _timings = timings ?? DdcTimings.Default;
+        _timings = timings ?? DDCTimings.Default;
     }
 
     /// <inheritdoc />
     public IEnumerable<IDisplay> GetDisplays()
     {
-        var connectors = DrmConnector.EnumerateConnected();
+        var connectors = DRMConnector.EnumerateConnected();
         var usedBuses = connectors
             .Where(c => c.BusPath != null)
             .Select(c => c.BusPath!)
@@ -30,7 +30,7 @@ public sealed class LinuxDisplayProvider : IDisplayProvider
         var displays = new List<IDisplay>();
         foreach (var connector in connectors)
         {
-            var edid = EdidInfo.TryParse(connector.Edid, out var parsed) ? parsed : null;
+            var edid = EDIDInfo.TryParse(connector.EDID, out var parsed) ? parsed : null;
             var id = edid?.ToDisplayId(connector.ConnectorName) ?? connector.Name;
             var description = edid?.Name ?? connector.ConnectorName;
 
@@ -40,7 +40,7 @@ public sealed class LinuxDisplayProvider : IDisplayProvider
                 continue;
             }
 
-            var busPath = connector.BusPath ?? FindBusByEdid(connector, usedBuses);
+            var busPath = connector.BusPath ?? FindBusByEDID(connector, usedBuses);
             if (busPath == null)
             {
                 displays.Add(new NoOpDisplay(id, description, $"No I2C bus found for connector {connector.ConnectorName}"));
@@ -54,7 +54,7 @@ public sealed class LinuxDisplayProvider : IDisplayProvider
     }
 
     /// <summary>Registers a <see cref="LinuxDisplayProvider"/> with <see cref="DisplayService"/>.</summary>
-    public static void Register(DdcTimings? timings = null) =>
+    public static void Register(DDCTimings? timings = null) =>
         DisplayService.RegisterProvider(new LinuxDisplayProvider(timings));
 
     private IDisplay CreateDisplay(string busPath, string id, string description, string connector)
@@ -64,10 +64,10 @@ public sealed class LinuxDisplayProvider : IDisplayProvider
             return new NoOpDisplay(id, description, openError);
         }
 
-        var channel = new DdcCiChannel(bus, _timings);
+        var channel = new DDCCIChannel(bus, _timings);
         // An "unsupported VCP code" reply still proves that the display speaks DDC/CI
-        var status = channel.TryGetVcp((byte)VCPFeature.Brightness, out _, out var probeError);
-        if (status == DdcStatus.Failed)
+        var status = channel.TryGetVCP((byte)VCPFeature.Brightness, out _, out var probeError);
+        if (status == DDCStatus.Failed)
         {
             channel.Dispose();
             return new NoOpDisplay(id, description, probeError);
@@ -81,19 +81,19 @@ public sealed class LinuxDisplayProvider : IDisplayProvider
     /// on each unused GPU bus. MST adapters (named "DPMST") are tried first, then DisplayPort AUX channels; the
     /// remaining buses (e.g. i915 gmbus pins used for HDMI) each cost a failed transfer.
     /// </summary>
-    private static string? FindBusByEdid(DrmConnector connector, HashSet<string> usedBuses)
+    private static string? FindBusByEDID(DRMConnector connector, HashSet<string> usedBuses)
     {
-        if (connector.Edid.Length < 128)
+        if (connector.EDID.Length < 128)
         {
             return null;
         }
 
-        var expected = connector.Edid.AsSpan(0, 128);
+        var expected = connector.EDID.AsSpan(0, 128);
         Span<byte> buffer = stackalloc byte[128];
         // A bus with a pending input switch write belongs to a display that is going away; reading
         // its EDID would block until the write times out
-        var candidates = SysFs.GetGpuBuses(connector.CardDevicePath)
-            .Where(b => !usedBuses.Contains(b.DevicePath) && !DdcCiChannel.IsWriteInBackground(b.DevicePath))
+        var candidates = SysFs.GetGPUBuses(connector.CardDevicePath)
+            .Where(b => !usedBuses.Contains(b.DevicePath) && !DDCCIChannel.IsWriteInBackground(b.DevicePath))
             .OrderBy(b => b.Name.StartsWith("DPMST", StringComparison.Ordinal) ? 0
                 : b.Name.Contains("AUX", StringComparison.Ordinal) ? 1
                 : 2);
@@ -106,7 +106,7 @@ public sealed class LinuxDisplayProvider : IDisplayProvider
             }
             using (bus)
             {
-                if (DdcCiChannel.TryReadEdid(bus, buffer, out _) && buffer.SequenceEqual(expected))
+                if (DDCCIChannel.TryReadEDID(bus, buffer, out _) && buffer.SequenceEqual(expected))
                 {
                     return devicePath;
                 }

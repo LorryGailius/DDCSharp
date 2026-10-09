@@ -9,7 +9,7 @@ namespace DDCSharp.Core.Capabilities;
 public static class CapabilityParser
 {
     /// <summary>Parses a raw capabilities string. Malformed parts are skipped instead of throwing.</summary>
-    public static MccsCapabilities Parse(string raw)
+    public static MCCSCapabilities Parse(string raw)
     {
         var sections = ParseSections(raw);
         sections.TryGetValue("type", out var type);
@@ -17,12 +17,12 @@ public static class CapabilityParser
         sections.TryGetValue("mccs_ver", out var mccsVersion);
         sections.TryGetValue("vcp", out var vcp);
 
-        return new MccsCapabilities(
+        return new MCCSCapabilities(
             raw,
             type,
             model,
             mccsVersion != null && Version.TryParse(mccsVersion, out var version) ? version : null,
-            vcp != null ? ParseVcp(vcp) : [],
+            vcp != null ? ParseVCP(vcp) : [],
             sections);
     }
 
@@ -79,7 +79,7 @@ public static class CapabilityParser
         return text.Length;
     }
 
-    private static List<Capability> ParseVcp(string vcp)
+    private static List<Capability> ParseVCP(string vcp)
     {
         var text = vcp.AsSpan();
         var capabilities = new List<Capability>();

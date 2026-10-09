@@ -28,7 +28,7 @@ public sealed class WindowsDisplayProvider : IDisplayProvider
                 var (handle, physicalDescription) = physicalMonitors[i];
                 var interfacePath = i < interfacePaths.Count ? interfacePaths[i] : null;
                 var location = interfacePath ?? $"{deviceName}#{i}";
-                var edid = interfacePath != null ? ReadEdid(interfacePath) : null;
+                var edid = interfacePath != null ? ReadEDID(interfacePath) : null;
                 var id = edid?.ToDisplayId(location) ?? location;
                 var description = edid?.Name ?? physicalDescription;
 
@@ -50,7 +50,7 @@ public sealed class WindowsDisplayProvider : IDisplayProvider
     public static void Register() => DisplayService.RegisterProvider(new WindowsDisplayProvider());
 
     /// <summary>Reads the EDID that Windows stores in the registry for a monitor device.</summary>
-    private static EdidInfo? ReadEdid(string interfacePath)
+    private static EDIDInfo? ReadEDID(string interfacePath)
     {
         // \\?\DISPLAY#DELF167#5&2a8b4c3e&0&UID4352#{guid} -> DISPLAY\DELF167\5&2a8b4c3e&0&UID4352
         var path = interfacePath.StartsWith(@"\\?\", StringComparison.Ordinal) ? interfacePath[4..] : interfacePath;
@@ -64,7 +64,7 @@ public sealed class WindowsDisplayProvider : IDisplayProvider
         try
         {
             using var key = Registry.LocalMachine.OpenSubKey($@"SYSTEM\CurrentControlSet\Enum\{instancePath}\Device Parameters");
-            return key?.GetValue("EDID") is byte[] data && EdidInfo.TryParse(data, out var edid) ? edid : null;
+            return key?.GetValue("EDID") is byte[] data && EDIDInfo.TryParse(data, out var edid) ? edid : null;
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or SecurityException)
         {

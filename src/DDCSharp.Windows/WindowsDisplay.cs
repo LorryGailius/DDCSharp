@@ -6,7 +6,7 @@ using DDCSharp.Core.Capabilities;
 namespace DDCSharp.Windows;
 
 /// <summary>Display controlled through the DXVA2 monitor configuration API.</summary>
-internal sealed class WindowsDisplay : DdcDisplay
+internal sealed class WindowsDisplay : DDCDisplay
 {
     private readonly PhysicalMonitorHandle _handle;
     private readonly object _sync = new();
@@ -35,7 +35,7 @@ internal sealed class WindowsDisplay : DdcDisplay
 
         var code = Marshal.GetLastPInvokeError();
         error = NativeMethods.DescribeError(code);
-        return code == NativeMethods.ErrorGraphicsDdcciVcpNotSupported;
+        return code == NativeMethods.ErrorGraphicsDDCCIVCPNotSupported;
     }
 
     public override bool TryGetVCPFeature(byte code, out VCPFeatureType type, out uint currentValue, out uint maximumValue)
@@ -53,7 +53,7 @@ internal sealed class WindowsDisplay : DdcDisplay
                 return Fail(NativeMethods.DescribeError(Marshal.GetLastPInvokeError()));
             }
 
-            type = codeType == NativeMethods.McMomentary ? VCPFeatureType.Momentary : VCPFeatureType.SetParameter;
+            type = codeType == NativeMethods.MCMomentary ? VCPFeatureType.Momentary : VCPFeatureType.SetParameter;
             return Succeed();
         }
     }

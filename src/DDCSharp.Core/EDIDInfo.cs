@@ -12,7 +12,7 @@ namespace DDCSharp.Core;
 /// <param name="SerialNumber">Binary serial number, 0 if not set.</param>
 /// <param name="SerialText">Serial number descriptor text, if present.</param>
 /// <param name="Name">Monitor name descriptor text (e.g. <c>DELL P2725DE</c>), if present.</param>
-public sealed record EdidInfo(
+public sealed record EDIDInfo(
     string ManufacturerId,
     ushort ProductCode,
     uint SerialNumber,
@@ -22,7 +22,7 @@ public sealed record EdidInfo(
     private static ReadOnlySpan<byte> Header => [0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00];
 
     /// <summary>Decodes the first 128 bytes of an EDID.</summary>
-    public static bool TryParse(ReadOnlySpan<byte> data, [NotNullWhen(true)] out EdidInfo? edid)
+    public static bool TryParse(ReadOnlySpan<byte> data, [NotNullWhen(true)] out EDIDInfo? edid)
     {
         edid = null;
         if (data.Length < 128 || !data[..8].SequenceEqual(Header))
@@ -57,7 +57,7 @@ public sealed record EdidInfo(
             }
         }
 
-        edid = new EdidInfo(
+        edid = new EDIDInfo(
             manufacturer,
             BinaryPrimitives.ReadUInt16LittleEndian(data[10..]),
             BinaryPrimitives.ReadUInt32LittleEndian(data[12..]),

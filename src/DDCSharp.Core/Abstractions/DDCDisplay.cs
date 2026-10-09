@@ -6,15 +6,15 @@ namespace DDCSharp.Core.Abstractions;
 /// Base class for displays controlled over DDC/CI. Platform providers implement the raw transport
 /// (VCP reads, VCP writes and the capabilities request); this class implements everything built on top of it.
 /// </summary>
-public abstract class DdcDisplay : IDisplay
+public abstract class DDCDisplay : IDisplay
 {
     private readonly object _capabilitiesLock = new();
-    private MccsCapabilities? _capabilities;
+    private MCCSCapabilities? _capabilities;
 
     /// <summary>Creates a display with the given identity.</summary>
     /// <param name="id">Stable identifier, see <see cref="IDisplay.Id"/>.</param>
     /// <param name="description">Human-readable display name.</param>
-    protected DdcDisplay(string id, string description)
+    protected DDCDisplay(string id, string description)
     {
         Id = id;
         Description = description;
@@ -34,7 +34,7 @@ public abstract class DdcDisplay : IDisplay
     /// <inheritdoc />
     public string? Model => GetCapabilities().Model;
     /// <inheritdoc />
-    public Version? MCCSVersion => GetCapabilities().MccsVersion;
+    public Version? MCCSVersion => GetCapabilities().MCCSVersion;
     /// <inheritdoc />
     public IReadOnlyCollection<Capability> Capabilities => GetCapabilities().Features;
     /// <inheritdoc />
@@ -56,7 +56,7 @@ public abstract class DdcDisplay : IDisplay
         }
     }
 
-    private MccsCapabilities GetCapabilities()
+    private MCCSCapabilities GetCapabilities()
     {
         lock (_capabilitiesLock)
         {
@@ -75,10 +75,10 @@ public abstract class DdcDisplay : IDisplay
         }
     }
 
-    private MccsCapabilities ReadCapabilities()
+    private MCCSCapabilities ReadCapabilities()
     {
         var raw = ReadCapabilitiesString();
-        return raw == null ? MccsCapabilities.Empty : CapabilityParser.Parse(raw);
+        return raw == null ? MCCSCapabilities.Empty : CapabilityParser.Parse(raw);
     }
 
     /// <summary>

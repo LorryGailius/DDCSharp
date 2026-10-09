@@ -1,23 +1,23 @@
 namespace DDCSharp.Linux;
 
 /// <summary>A connected DRM connector from <c>/sys/class/drm</c>, e.g. <c>card1-DP-4</c>.</summary>
-internal sealed record DrmConnector(string Name, string ConnectorName, string CardDevicePath, byte[] Edid, string? BusPath)
+internal sealed record DRMConnector(string Name, string ConnectorName, string CardDevicePath, byte[] EDID, string? BusPath)
 {
-    private const string DrmClassPath = "/sys/class/drm";
+    private const string DRMClassPath = "/sys/class/drm";
 
     private static readonly string[] InternalPanelPrefixes = ["eDP", "LVDS", "DSI"];
 
     public bool IsInternalPanel => InternalPanelPrefixes.Any(p => ConnectorName.StartsWith(p, StringComparison.Ordinal));
 
-    public static List<DrmConnector> EnumerateConnected()
+    public static List<DRMConnector> EnumerateConnected()
     {
-        var connectors = new List<DrmConnector>();
-        if (!Directory.Exists(DrmClassPath))
+        var connectors = new List<DRMConnector>();
+        if (!Directory.Exists(DRMClassPath))
         {
             return connectors;
         }
 
-        foreach (var directory in Directory.EnumerateDirectories(DrmClassPath, "card*-*").Order(StringComparer.Ordinal))
+        foreach (var directory in Directory.EnumerateDirectories(DRMClassPath, "card*-*").Order(StringComparer.Ordinal))
         {
             if (SysFs.ReadText(Path.Combine(directory, "status")) != "connected")
             {
@@ -27,10 +27,10 @@ internal sealed record DrmConnector(string Name, string ConnectorName, string Ca
             var name = Path.GetFileName(directory);
             var separator = name.IndexOf('-');
             var cardName = name[..separator];
-            connectors.Add(new DrmConnector(
+            connectors.Add(new DRMConnector(
                 name,
                 name[(separator + 1)..],
-                SysFs.ResolvePath(Path.Combine(DrmClassPath, cardName, "device")),
+                SysFs.ResolvePath(Path.Combine(DRMClassPath, cardName, "device")),
                 SysFs.ReadBytes(Path.Combine(directory, "edid")),
                 FindDirectBus(directory)));
         }
@@ -95,7 +95,7 @@ internal static class SysFs
     /// Lists I2C buses that belong to a GPU (their sysfs device sits below <paramref name="cardDevicePath"/>),
     /// as (device path, adapter name) pairs. Buses of other devices, such as SMBus with RAM SPD EEPROMs, are never touched.
     /// </summary>
-    public static List<(string DevicePath, string Name)> GetGpuBuses(string cardDevicePath)
+    public static List<(string DevicePath, string Name)> GetGPUBuses(string cardDevicePath)
     {
         var buses = new List<(string, string)>();
         if (!Directory.Exists(I2CDevicesPath))

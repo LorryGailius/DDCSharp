@@ -9,12 +9,12 @@ internal static unsafe partial class NativeMethods
     private const string User32 = "user32.dll";
 
     // MC_VCP_CODE_TYPE
-    internal const uint McMomentary = 0;
+    internal const uint MCMomentary = 0;
 
-    internal const uint EddGetDeviceInterfaceName = 0x00000001;
+    internal const uint EDDGetDeviceInterfaceName = 0x00000001;
     internal const uint DisplayDeviceActive = 0x00000001;
 
-    internal const int ErrorGraphicsDdcciVcpNotSupported = unchecked((int)0xC0262584);
+    internal const int ErrorGraphicsDDCCIVCPNotSupported = unchecked((int)0xC0262584);
 
     [StructLayout(LayoutKind.Sequential)]
     internal struct PhysicalMonitor
@@ -166,7 +166,7 @@ internal static unsafe partial class NativeMethods
         for (uint index = 0; ; index++)
         {
             var device = new DisplayDevice { Size = (uint)sizeof(DisplayDevice) };
-            if (!EnumDisplayDevices(deviceName, index, &device, EddGetDeviceInterfaceName))
+            if (!EnumDisplayDevices(deviceName, index, &device, EDDGetDeviceInterfaceName))
             {
                 break;
             }

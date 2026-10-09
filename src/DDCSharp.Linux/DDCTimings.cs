@@ -4,10 +4,10 @@ namespace DDCSharp.Linux;
 /// Delays and retries used for DDC/CI over I2C. Defaults follow the DDC/CI specification;
 /// some displays work with shorter delays and some need longer ones.
 /// </summary>
-public sealed record DdcTimings
+public sealed record DDCTimings
 {
     /// <summary>Default timings from the DDC/CI specification.</summary>
-    public static DdcTimings Default { get; } = new();
+    public static DDCTimings Default { get; } = new();
 
     /// <summary>Wait between sending a Get VCP Feature request and reading the reply.</summary>
     public TimeSpan GetReplyDelay { get; init; } = TimeSpan.FromMilliseconds(40);
