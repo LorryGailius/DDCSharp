@@ -2,14 +2,14 @@
 
   <PropertyGroup>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <PackageId>DDCSharp.Windows</PackageId>
-    <Description>Windows implementation for DDCSharp providing monitor enumeration and VCP command transport.</Description>
-    <PackageTags>DDC;DDC/CI;Monitor;Display;VCP;Windows</PackageTags>
+    <PackageId>DDCSharp.Linux</PackageId>
+    <Description>Linux implementation for DDCSharp providing monitor enumeration and DDC/CI over /dev/i2c-*.</Description>
+    <PackageTags>DDC;DDC/CI;Monitor;Display;VCP;Linux;I2C</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
     <AssemblyAttribute Include="System.Runtime.Versioning.SupportedOSPlatformAttribute">
-      <_Parameter1>windows</_Parameter1>
+      <_Parameter1>linux</_Parameter1>
     </AssemblyAttribute>
   </ItemGroup>
 

@@ -1,119 +1,112 @@
-using DDCSharp.Core;
+using System.Runtime.InteropServices;
+using System.Text;
 using DDCSharp.Core.Abstractions;
 using DDCSharp.Core.Capabilities;
 
 namespace DDCSharp.Windows;
 
-internal sealed class WindowsDisplay : IDisplay
+/// <summary>Display controlled through the DXVA2 monitor configuration API.</summary>
+internal sealed class WindowsDisplay : DDCDisplay
 {
-    private readonly WindowsDisplayHandle _handle;
+    private readonly PhysicalMonitorHandle _handle;
     private readonly object _sync = new();
 
-    public WindowsDisplay(WindowsDisplayHandle handle, WindowsDisplayInfo info)
+    public WindowsDisplay(PhysicalMonitorHandle handle, string id, string description, string deviceName)
+        : base(id, description)
     {
         _handle = handle;
-        ApplyInfo(info);
+        DeviceName = deviceName;
     }
 
-    private void ApplyInfo(WindowsDisplayInfo info)
-    {
-        Description = info.Description;
-        Type = info.Type;
-        Model = info.Model;
-        MCCSVersion = info.MCCSVersion;
-        Capabilities = info.Capabilities;
-        SupportsVCP = info.SupportsVCP;
-    }
+    /// <summary>GDI device name of the logical monitor, e.g. <c>\\.\DISPLAY1</c>.</summary>
+    public string DeviceName { get; }
 
-    public string Description { get; private set; } = string.Empty;
-    public string? Type { get; private set; }
-    public string? Model { get; private set; }
-    public Version? MCCSVersion { get; private set; }
-    public IReadOnlyCollection<Capability> Capabilities { get; private set; } = [];
-    public bool SupportsVCP { get; private set; }
-
-    public bool TryGetVCPFeature(byte code, out VCPFeatureType type, out uint currentValue, out uint maximumValue)
+    /// <summary>
+    /// Checks whether the monitor answers DDC/CI. A "VCP code not supported" reply still proves
+    /// that DDC/CI works, which is much cheaper to find out than fetching the capabilities string.
+    /// </summary>
+    public static bool Probe(PhysicalMonitorHandle handle, out string? error)
     {
-        lock (_sync)
+        if (NativeMethods.GetVCPFeatureAndVCPFeatureReply(handle, (byte)VCPFeature.Brightness, out _, out _, out _))
         {
-            if (!WinAPI.GetVCPFeatureAndVCPFeatureReply(
-                    _handle.Handle,
-                    code,
-                    out var nativeType,
-                    out var current,
-                    out var max))
-            {
-                type = default;
-                currentValue = 0;
-                maximumValue = 0;
-                return false;
-            }
-            type = (VCPFeatureType)nativeType;
-            currentValue = current;
-            maximumValue = max;
+            error = null;
             return true;
         }
+
+        var code = Marshal.GetLastPInvokeError();
+        error = NativeMethods.DescribeError(code);
+        return code == NativeMethods.ErrorGraphicsDDCCIVCPNotSupported;
     }
 
-    public bool TrySetVCPFeature(byte code, uint value)
+    public override bool TryGetVCPFeature(byte code, out VCPFeatureType type, out uint currentValue, out uint maximumValue)
     {
         lock (_sync)
         {
-            return WinAPI.SetVCPFeature(_handle.Handle, code, value);
+            if (!NativeMethods.GetVCPFeatureAndVCPFeatureReply(
+                    _handle,
+                    code,
+                    out var codeType,
+                    out currentValue,
+                    out maximumValue))
+            {
+                type = default;
+                return Fail(NativeMethods.DescribeError(Marshal.GetLastPInvokeError()));
+            }
+
+            type = codeType == NativeMethods.MCMomentary ? VCPFeatureType.Momentary : VCPFeatureType.SetParameter;
+            return Succeed();
         }
     }
 
-    public IReadOnlyCollection<InputSource> GetSupportedInputSources()
-    {
-        var displayCapability = Capabilities.FirstOrDefault(c => c.Feature == VCPFeature.InputSource);
-        if (displayCapability == null)
-        {
-            return [];
-        }
-
-        return displayCapability.SupportedValues
-            .Select(v => Enum.IsDefined(typeof(InputSource), v) ? (InputSource)v : InputSource.Unknown)
-            .ToList();
-    }
-
-    public void SetInputSource(InputSource targetInput)
-    {
-        if (!GetSupportedInputSources().Contains(targetInput))
-        {
-            return;
-        }
-
-        TrySetVCPFeature((byte)VCPFeature.InputSource, (byte)targetInput);
-    }
-
-    public InputSource GetInputSource()
-    {
-        if (!TryGetVCPFeature((byte)VCPFeature.InputSource, out _, out var currentValue, out _))
-        {
-            return InputSource.Unknown;
-        }
-        return Enum.IsDefined(typeof(InputSource), (byte)currentValue) ? (InputSource)(byte)currentValue : InputSource.Unknown;
-    }
-
-    public bool TrySetBrightness(uint brightness)
-    {
-        var capability = Capabilities.FirstOrDefault(c => c.Feature == VCPFeature.Brightness);
-        if (capability == null)
-        {
-            return false;
-        }
-
-        return TrySetVCPFeature((byte)VCPFeature.Brightness, brightness);
-    }
-
-    public void RefreshCapabilities()
+    public override bool TrySetVCPFeature(byte code, uint value)
     {
         lock (_sync)
         {
-            var info = WindowsDisplayInfo.Create(_handle);
-            ApplyInfo(info);
+            return NativeMethods.SetVCPFeature(_handle, code, value)
+                ? Succeed()
+                : Fail(NativeMethods.DescribeError(Marshal.GetLastPInvokeError()));
         }
     }
 
-    public void Dispose() => _handle.Dispose();
+    protected override unsafe string? ReadCapabilitiesString()
+    {
+        lock (_sync)
+        {
+            // Both calls run the full DDC/CI capabilities exchange, so this takes roughly twice as long as one read
+            if (!NativeMethods.GetCapabilitiesStringLength(_handle, out var length))
+            {
+                Fail(NativeMethods.DescribeError(Marshal.GetLastPInvokeError()));
+                return null;
+            }
+            if (length == 0)
+            {
+                Fail("Display returned an empty capabilities string");
+                return null;
+            }
+
+            var buffer = new byte[length];
+            fixed (byte* pointer = buffer)
+            {
+                if (!NativeMethods.CapabilitiesRequestAndCapabilitiesReply(_handle, pointer, length))
+                {
+                    Fail(NativeMethods.DescribeError(Marshal.GetLastPInvokeError()));
+                    return null;
+                }
+            }
+
+            Succeed();
+            var end = Array.IndexOf(buffer, (byte)0);
+            return Encoding.ASCII.GetString(buffer, 0, end < 0 ? buffer.Length : end);
+        }
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _handle.Dispose();
+        }
+    }
+
+    public override string ToString() => $"{Description} [{Id}] on {DeviceName}";
 }
