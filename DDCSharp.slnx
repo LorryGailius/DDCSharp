@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="src/DDCSharp.Core/DDCSharp.Core.csproj" />
+  <Project Path="src/DDCSharp.Linux/DDCSharp.Linux.csproj" />
+  <Project Path="src/DDCSharp.Windows/DDCSharp.Windows.csproj" />
+</Solution>
