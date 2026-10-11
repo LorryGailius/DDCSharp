@@ -9,9 +9,15 @@
     <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
   </PropertyGroup>
 
+  <!-- Core is {CoreVersion}.0 and ports are {CoreVersion}.{PortIteration}; the publish workflows pass both in from the latest v* tag -->
+  <PropertyGroup>
+    <CoreVersion Condition="'$(CoreVersion)' == ''">0.0</CoreVersion>
+    <PortIteration Condition="'$(PortIteration)' == ''">0</PortIteration>
+    <Version>$(CoreVersion).0</Version>
+  </PropertyGroup>
+
   <!-- NuGet package metadata shared by all DDCSharp packages -->
   <PropertyGroup>
-    <Version>0.1.0</Version>
     <Authors>Laurynas Gailius</Authors>
     <Product>DDCSharp</Product>
     <RepositoryUrl>https://github.com/LorryGailius/DDCSharp</RepositoryUrl>
