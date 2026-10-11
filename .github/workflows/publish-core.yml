@@ -1,11 +1,16 @@
 name: Publish DDCSharp.Core to NuGet
 
 on:
+  push:
+    branches: [main]
+    tags: ["v[0-9]+.[0-9]+*"]
+    paths:
+      - src/DDCSharp.Core/**
+      - src/Directory.Build.props
   workflow_dispatch:
-    inputs:
-      version:
-        description: "Package version to publish (e.g. 0.1.1)"
-        required: true
+
+concurrency:
+  group: publish-core
 
 env:
   PROJECT_PATH: src/DDCSharp.Core/DDCSharp.Core.csproj
@@ -17,19 +22,25 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
 
-      - name: Restore
-        run: dotnet restore
+      - name: Resolve version
+        run: |
+          TAG=$(git describe --tags --abbrev=0 --match 'v[0-9]*.[0-9]*')
+          IFS=. read -r MAJOR MINOR _ <<< "${TAG#v}"
+          echo "CORE_VERSION=$MAJOR.$MINOR" >> "$GITHUB_ENV"
+          echo "VERSION=$MAJOR.$MINOR.0" >> "$GITHUB_ENV"
 
       - name: Pack
         run: |
-          echo "Packing version ${{ github.event.inputs.version }}"
-          dotnet pack ${{ env.PROJECT_PATH }} -c Release -p:PackageVersion=${{ github.event.inputs.version }} -o ${{ env.ARTIFACT_DIR }}
+          echo "Packing DDCSharp.Core $VERSION"
+          dotnet pack ${{ env.PROJECT_PATH }} -c Release -p:CoreVersion=$CORE_VERSION -o ${{ env.ARTIFACT_DIR }}
           ls -al ${{ env.ARTIFACT_DIR }}
 
       - name: Push package (nupkg)
@@ -37,10 +48,10 @@ jobs:
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
         run: |
           if [ -z "$NUGET_API_KEY" ]; then echo "Missing NUGET_API_KEY secret"; exit 1; fi
-          for pkg in $(ls ${{ env.ARTIFACT_DIR }}/DDCSharp.Core.${{ github.event.inputs.version }}.nupkg); do
-            echo "Pushing $pkg"
-            dotnet nuget push "$pkg" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
-          done
+          PKG=${{ env.ARTIFACT_DIR }}/DDCSharp.Core.$VERSION.nupkg
+          if [ ! -f "$PKG" ]; then echo "Package not found: $PKG"; exit 1; fi
+          echo "Pushing $PKG"
+          dotnet nuget push "$PKG" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
 
       - name: Push symbols (snupkg)
         env:
@@ -48,7 +59,7 @@ jobs:
         run: |
           set -e
           if [ -z "$NUGET_API_KEY" ]; then echo "Missing NUGET_API_KEY secret"; exit 1; fi
-          SYMBOL_PKG="${{ env.ARTIFACT_DIR }}/DDCSharp.Core.${{ github.event.inputs.version }}.snupkg"
+          SYMBOL_PKG="${{ env.ARTIFACT_DIR }}/DDCSharp.Core.$VERSION.snupkg"
           if [ -f "$SYMBOL_PKG" ]; then
             echo "Pushing symbols $SYMBOL_PKG"
             dotnet nuget push "$SYMBOL_PKG" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
@@ -59,5 +70,5 @@ jobs:
       - name: Summary
         run: |
           echo "## Publish Summary" >> $GITHUB_STEP_SUMMARY
-          echo "Version: ${{ github.event.inputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "Version: $VERSION" >> $GITHUB_STEP_SUMMARY
           echo "Symbols pushed: Yes (if .snupkg present)" >> $GITHUB_STEP_SUMMARY

@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <Version>$(CoreVersion).$(PortIteration)</Version>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <PackageId>DDCSharp.Linux</PackageId>
     <Description>Linux implementation for DDCSharp providing monitor enumeration and DDC/CI over /dev/i2c-*.</Description>
